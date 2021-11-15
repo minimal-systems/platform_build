@@ -1,0 +1,13 @@
+#!/bin/bash
+
+subdirs_cleansteps=cleanspec.mk
+ # clean steps.....
+for var in find * */* */*/* */*/*/*
+do
+tput sc
+echo " including $var " | grep 'CleanSpec.mk'
+tput rc
+echo "-include $var" | grep 'CleanSpec.mk' >> out/$subdirs_cleansteps
+done
+
+echo done...
