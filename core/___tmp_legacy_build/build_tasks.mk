@@ -4,7 +4,6 @@ MAKE=$(MAKE_CMD)
 build_modules:
 #	@$(MAKE) $(MAKEFILES)
 	@$(MAKE) bionic
-	@$(MAKE) bootable/recovery/amonet
 	@make recovery -C bootable/recovery/
 	@$(MAKE) bootable/recovery/crypto_updater
 	@$(MAKE) bootable/recovery/update_engine

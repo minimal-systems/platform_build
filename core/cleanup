@@ -1,13 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env python 
+import sys
+import os
 
-subdirs_cleansteps=cleanspec.mk
- # clean steps.....
-for var in find * */* */*/* */*/*/*
-do
-tput sc
-echo " including $var " | grep 'CleanSpec.mk'
-tput rc
-echo "-include $var" | grep 'CleanSpec.mk' >> out/$subdirs_cleansteps
-done
-
-echo done...
+def clean_built_target():
+    if os.path.exists(f"{obj}/{local_path}/{local_module}"):
+        os.remove(f"{obj}/{local_path}/{local_module}")
+    else:
+        print(f"//{local_path}:{local_module} is not built yet")
+        
+def clean_kernel():
+    if os.path.exists(f"{obj}/KERNEL_OBJ"):
+        os.remove(f"{obj}/KERNEL_OBJ")
+    else:
+        print("kernel is not built yet")
+        

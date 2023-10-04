@@ -1,0 +1,15 @@
+#!/usr/bin/python
+
+# this tool builds the binary depending what kind of module it is.
+# it can be a proprietary module or a open source module.
+
+
+# check the build_info.py file 
+# File will soon be converted to build_info 
+
+# lets collect the list of all the module_info files
+
+
+for line in open("out/.module_paths/module_info.list", "r").readlines():
+    module_list = line.strip() 
+    print (module_list)

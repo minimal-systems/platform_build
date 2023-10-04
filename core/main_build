@@ -1,0 +1,106 @@
+#!/usr/bin/python3
+
+import argparse
+import logging
+import os
+import shutil
+import subprocess
+
+# import build system modules
+from build_system import *
+from envsetup import *
+from lunch_target import *
+sys.path.append(f"{build_top}/build/soong")
+from soong_ui import *
+
+
+
+# global variables
+build_top = os.environ.get("BUILD_TOP")
+build_system_version = '1.0'
+
+
+# global variables
+BUILD_TOP = os.environ.get("BUILD_TOP")
+BUILD_SYSTEM_VERSION = '1.0'
+MAKE = 'make'
+CMAKE = 'cmake'
+CLANG = 'clang'
+GCC = 'gcc'
+STRIP = 'strip'
+
+
+def check_install(name):
+    try:
+        subprocess.check_call([name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except subprocess.CalledProcessError:
+        logging.error(f"{name} not found")
+
+
+def check_build_deps():
+    logging.info("checking build dependencies...")
+    logging.info('build dependencies are installed')
+
+
+def check_dependencies():
+    logging.info('checking build environment...')
+    if BUILD_TOP is None:
+        logging.info("Did you run build/envsetup.sh?")
+    else:
+        logging.info('build environment is successfully set up')
+        check_build_deps()
+
+
+def exec_full_build():
+    logging.info('entering full build...')
+    clean()
+    logging.info('regenerating device config...')
+    generate_target_device_config()  # regen the device config
+    logging.info('device config is generated')
+    logging.info('checking if Soong exists...')
+    if os.path.exists(f'{BUILD_TOP}/build/soong/'):
+        logging.info('Soong is installed')
+        soong_main()
+    else:
+        logging.error('Soong is not installed')
+
+
+def clean():
+    logging.info('cleaning up out directory...')
+    shutil.rmtree('out', ignore_errors=True)
+    logging.info('output directory cleaned successfully')
+
+def clean_module(target_module):
+    logging.info(f'cleaning up module {target_module}...')
+    target_module_indeterminates = os.path.join(target_obj, 'EXECUTABLES', f'{target_module}_indeterminates')
+    target_module_recovery_indeterminates = os.path.join(target_obj, 'EXECUTABLES', f'{target_module}_recovery_indeterminates')
+    shutil.rmtree(target_module_indeterminates, ignore_errors=True)
+    shutil.rmtree(target_module_recovery_indeterminates, ignore_errors=True)
+    logging.info('module cleaned successfully')
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('command', choices=['clean', 'clean_module', 'target'], help='command to run')
+    parser.add_argument('--module', help='target module to clean')
+    return parser.parse_args()
+
+
+def main():
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+    check_dependencies()
+    args = parse_args()
+
+    if args.command == 'clean':
+        clean()
+    elif args.command == 'clean_module':
+        if args.module:
+            clean_module(args.module)
+        else:
+            logging.error('Missing argument: module')
+            exit(2)
+    elif args.command == 'target':
+        exec_full_build()
+
+
+main()

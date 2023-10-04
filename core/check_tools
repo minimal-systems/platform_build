@@ -1,0 +1,88 @@
+#!/usr/bin/env python
+
+# check if needed tools are installed
+def check_tools():
+    import os
+    import subprocess
+    import sys
+
+    # check if java is installed
+    try:
+        subprocess.call(['javac', '-version'])
+        subprocess.call(['java', '-version'])
+    except OSError:
+        print('Error: Java is not installed')
+
+
+    # check if gcc is installed
+    try:
+        subprocess.call(['gcc', '--version'])
+        subprocess.call(['gcc', '-v'])
+    except OSError:
+        print('Error: gcc is not installed')
+
+
+    # check if cc is installed
+    try:
+        subprocess.call(['cc', '-v'])
+    except OSError:
+        print('Error: cc is not installed')
+
+
+    # check if python is installed
+    try:
+        subprocess.call(['python', '-c','import sys; print(".".join(map(str, sys.version_info[:3])))'])
+    except OSError:
+        print('Error: Python is not installed')
+
+
+    # check if git is installed
+    try:
+        subprocess.call(['git', '--version'])
+    except OSError:
+        print('Error: Git is not installed')
+
+
+    # check if git is installed
+    try:
+        subprocess.call(['repo', '--version'])
+    except OSError:
+        print('Error: Repo is not installed')
+
+
+    # check if git is installed
+    try:
+        subprocess.call(['git', '--version'])
+    except OSError:
+        print('Error: Git is not installed')
+
+
+    # check if ccache is installed
+    try:
+        subprocess.call(['ccache', '--version'])
+    except OSError:
+        print('Error: Ccache is not installed')
+
+
+    # check if adb is installed
+    try:
+        subprocess.call(['adb', 'version'])
+    except OSError:
+        print('Error: adb is not installed')
+
+
+    # check if mke2fs is installed
+    try:
+        subprocess.call(['mke2fs', '--version'])
+    except OSError:
+        print('Error: mke2fs is not installed')
+
+
+    # check if mkfs.fat is installed
+    try:
+        subprocess.call(['mkfs.fat', '-V'])
+    except OSError:
+        print('Error: mkfs is not installed')
+
+
+check_tools()
