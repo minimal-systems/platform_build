@@ -20,6 +20,8 @@ override_exec_path = False
 local_cpp_flags = ''
 local_src_files = ''
 local_c_includes = ''
+ld_flags = ''
+
 
 sys.path.insert(1, sys.argv[1])
 from module_info import *

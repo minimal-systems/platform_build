@@ -47,5 +47,6 @@ os.environ.setdefault("HOST_OS", host_os)
 os.environ.setdefault("HOST_OS_EXTRA", host_os_extra)
 os.environ.setdefault("TARGET_BUILD_VARIANT", target_build_variant)
 
+
 if __name__ == "__main__":
     print(BUILD_ID)
