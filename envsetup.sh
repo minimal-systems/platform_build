@@ -17,7 +17,7 @@ check_dependencies() {
                 echo "Error: $pkg is not installed. Please install it using 'sudo pacman -S $pkg'."
                 # Install the package
                 sudo pacman -S $pkg
-                
+
                 return 1
             fi
         done
@@ -30,6 +30,13 @@ check_dependencies
 # Cleanup PYTHONPATH and activate the Python virtual environment
 chmod +x ./prebuilts/python/venv/bin/activate
 source prebuilts/python/venv/bin/activate
+
+# Function: croot
+# Usage: croot
+# Changes directory to the top of the build tree.
+function croot() {
+    cd "$BUILD_TOP"
+}
 
 # Function: lunch
 # Usage: lunch <product_name>-<build_variant>
