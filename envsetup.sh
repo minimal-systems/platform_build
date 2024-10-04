@@ -5,8 +5,29 @@ echo $(pwd) > /tmp/build_top
 export BUILD_TOP=$(cat /tmp/build_top)
 export TOP=$BUILD_TOP
 export OUT_DIR=$BUILD_TOP/out
+export PYTHONPATH="" # Clear PYTHONPATH
 
-# Cleanup PythonPath and activate the Python virtual environment
+# Check if required Python packages are installed on Arch Linux
+check_dependencies() {
+    # Check if we are running on Arch Linux
+    if [ -f /etc/arch-release ]; then
+        REQUIRED_PACKAGES=("python-prettytable" "python-cryptography" "python-termcolor")
+        for pkg in "${REQUIRED_PACKAGES[@]}"; do
+            if ! pacman -Qs $pkg > /dev/null; then
+                echo "Error: $pkg is not installed. Please install it using 'sudo pacman -S $pkg'."
+                # Install the package
+                sudo pacman -S $pkg
+                
+                return 1
+            fi
+        done
+    fi
+}
+
+# Run the dependency check
+check_dependencies
+
+# Cleanup PYTHONPATH and activate the Python virtual environment
 chmod +x ./prebuilts/python/venv/bin/activate
 source prebuilts/python/venv/bin/activate
 
@@ -26,6 +47,9 @@ function lunch() {
         echo "Error: BUILD_TOP environment variable must be set."
         return 1
     fi
+
+    # Set LUNCH_MODE to true
+    export LUNCH_MODE="true"
 
     # Extract TARGET_DEVICE and TARGET_BUILD_VARIANT
     TARGET=$1
@@ -55,7 +79,7 @@ function lunch() {
 # Usage: build [options]
 # Starts the build using the Soong build system.
 function build() {
-    python build/soong/main_build.py "$@"
+    python build/core/main.py "$@"
 }
 
 # Function: mmm
