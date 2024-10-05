@@ -15,6 +15,18 @@ import sys
 # Full paths to all of the documentation
 all_docs = []
 
+# a list of all module targets in the system.
+# for each element in the `all_modules` list, two additional variables
+# are defined:
+#   all_modules[target].built
+#   all_modules[target].installed
+#
+# the `built` attribute stores the `local_built_module` for that target,
+# and the `installed` attribute stores the `local_installed_module`.
+#
+# some targets may have multiple files listed in the `built` and `installed`
+# attributes.
+all_modules = []
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
