@@ -72,6 +72,9 @@ host_cross_display = "host cross"
 # All installed initrc files
 all_init_rc_installed_pairs = []
 
+# List to hold all installed configuration or metadata fragments for a Linux system
+all_config_fragments_list = []
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
