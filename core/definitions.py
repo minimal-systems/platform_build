@@ -1,3 +1,4 @@
+import fnmatch
 import os
 import platform
 import importlib.util
@@ -784,7 +785,6 @@ def find_subdir_subdir_files(subdir, pattern, exclude_pattern=None):
 
     return sorted(files)
 
-
 ###########################################################
 ## Find all of the files in the directory, excluding hidden files
 ##    src_files = find_subdir_assets(<directory>)
@@ -812,6 +812,53 @@ def find_subdir_assets(base_directory=None):
     found_files = [str(file_path) for file_path in base_dir_path.rglob("*") if
                    file_path.is_file() and not file_path.name.startswith(".")]
     return sorted(found_files)
+
+###########################################################
+## Find various file types in a list of directories relative to the current path.
+###########################################################
+
+def find_other_html_files(base_directories):
+    """
+    Find all `.html` files under the named directories relative to the current directory.
+
+    Args:
+        base_directories (list of str or Path): List of directories to search for `.html` files.
+
+    Returns:
+        list: A list of paths to all `.html` files under the given directories.
+    """
+    return all_html_files_under(base_directories)
+
+###########################################################
+## Helper function to find all `.html` files under the named directories.
+###########################################################
+
+def all_html_files_under(base_directories):
+    """
+    Find all `.html` files under the named directories.
+
+    Args:
+        base_directories (list of str or Path): List of directories to search for `.html` files.
+
+    Returns:
+        list: A list of paths to all `.html` files under the given directories.
+    """
+    current_directory = Path(os.getcwd()).resolve()
+    found_files = []
+
+    for base_dir in base_directories:
+        base_dir_path = current_directory / base_dir
+
+        if not base_dir_path.exists() or not base_dir_path.is_dir():
+            continue
+
+        # Use rglob to search for `.html` files in the specified directory and its subdirectories
+        for file_path in base_dir_path.rglob("*.html"):
+            if file_path.is_file():
+                found_files.append(str(file_path))
+
+    return sorted(found_files)
+
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
