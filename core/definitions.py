@@ -483,6 +483,40 @@ def all_subdir_named_dirs(directory_name):
 
     return found_directories
 
+###########################################################
+## Find all of the files under the named directories with
+## the specified name.
+## Meant to be used like:
+##    src_files = all_named_files_under("*.h", ["src", "tests"])
+###########################################################
+
+def all_named_files_under(file_pattern, base_directories, local_path="."):
+    """
+    Find all of the files under the named directories with the specified name.
+
+    Args:
+        file_pattern (str): The file name pattern to search for (e.g., "*.h").
+        base_directories (list of str or Path): List of base directories to search under.
+        local_path (str or Path): The base path to start searching from. Default is the current directory.
+
+    Returns:
+        list: A list of paths to all files that match the specified pattern under the given directories.
+    """
+    local_path = Path(local_path).resolve()
+    found_files = []
+
+    for base_dir in base_directories:
+        base_dir_path = local_path / base_dir
+
+        if not base_dir_path.exists() or not base_dir_path.is_dir():
+            continue
+
+        # Use rglob to search for files that match the file pattern
+        for file_path in base_dir_path.rglob(file_pattern):
+            if file_path.is_file():
+                found_files.append(str(file_path))
+
+    return found_files
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
