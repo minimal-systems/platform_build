@@ -422,6 +422,38 @@ def all_named_subdir_module_info(directories, current_dir):
 
     return found_files
 
+###########################################################
+## Find all of the directories under the named directories with
+## the specified name.
+## Meant to be used like:
+##    INC_DIRS := $(call all-named-dirs-under,inc,.)
+###########################################################
+def all_named_dirs_under(directory_name, base_directories):
+    """
+    Find all directories with the specified name under the given base directories.
+
+    Args:
+        directory_name (str): The name of the directories to look for.
+        base_directories (list of str or Path): A list of base directories to search under.
+
+    Returns:
+        list: A list of paths to all directories matching `directory_name` under the given base directories.
+    """
+    found_directories = []
+
+    for base_directory in base_directories:
+        base_directory = Path(base_directory).resolve()
+        if not base_directory.exists() or not base_directory.is_dir():
+            continue
+
+        # Use rglob to search for directories with the given name
+        for directory in base_directory.rglob(directory_name):
+            if directory.is_dir():
+                found_directories.append(str(directory))
+
+    return found_directories
+
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
