@@ -37,6 +37,20 @@ non_modules_without_license_metadata = []
 # list of copied targets that need license metadata.
 all_copied_targets = []
 
+# Full paths to targets that should be added to the "make linux"
+# set of installed targets.
+all_default_installed_modules = []
+
+# Full path to all asm, C, C++, lex and yacc generated C files.
+# These all have an order-only dependency on the copied headers
+all_c_cpp_etc_objects = []
+
+# These files go into the SDK
+all_sdk_files = []
+
+# All findbugs xml files
+all_findbug_files = []
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
