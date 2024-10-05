@@ -1,26 +1,9 @@
-# .github/workflows/todo-to-issue.yml
-name: TODO to Issue
-
-# Triggers the action when changes are pushed to the main branch or when a pull request is opened/updated.
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
+name: "Run TODO to Issue"
+on: [ "push" ]
 jobs:
-  todo-to-issue:
-    runs-on: ubuntu-latest
-
+  build:
+    runs-on: "ubuntu-latest"
     steps:
-      # Checkout the repository code
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Run the TODO to Issue Action
-      - name: Create GitHub issues from TODO comments
-        uses: alstr/todo-to-issue-action@v5
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: "actions/checkout@v4"
+      - name: "TODO to Issue"
+        uses: "alstr/todo-to-issue-action@v5"
