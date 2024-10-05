@@ -453,6 +453,36 @@ def all_named_dirs_under(directory_name, base_directories):
 
     return found_directories
 
+###########################################################
+## Find all the directories under the current directory that
+## haves name that match $(1)
+###########################################################
+
+def all_subdir_named_dirs(directory_name):
+    """
+    Find all directories under the current directory with the specified name.
+
+    Args:
+        directory_name (str): The name of the directories to look for.
+        current_directory (str or Path): The directory to start the search from. Default is the current directory.
+
+    Returns:
+        list: A list of paths to all directories matching `directory_name` under the current directory.
+    """
+    current_directory = Path(os.getcwd()).resolve()
+    found_directories = []
+
+    # Check if the current directory exists and is indeed a directory
+    if not current_directory.exists() or not current_directory.is_dir():
+        return found_directories
+
+    # Use rglob to search for directories with the given name under the current directory
+    for directory in current_directory.rglob(directory_name):
+        if directory.is_dir():
+            found_directories.append(str(directory))
+
+    return found_directories
+
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
