@@ -395,7 +395,7 @@ def all_subdir_module_info(module_file, build_system_dir, out_dir, filename="mod
 ###########################################################
 
 # $(1): List of directories to look for under this directory
-def all_named_subdir_makefiles(directories, current_dir):
+def all_named_subdir_module_info(directories, current_dir):
     """
     Look for 'module_info.bp' files in the named list of directories relative to the current directory.
     Searches all subdirectories recursively.
