@@ -64,6 +64,11 @@ host_2nd_arch_dependencies_on_shared_libraries = {}
 host_cross_dependencies_on_shared_libraries = {}
 host_cross_2nd_arch_dependencies_on_shared_libraries = {}
 
+# Display names for various build targets
+target_display = "target"
+host_display = "host"
+host_cross_display = "host cross"
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
