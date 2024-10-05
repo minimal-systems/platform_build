@@ -576,6 +576,98 @@ def all_c_files_under(base_directories):
                 found_files.append(str(file_path))
 
     return found_files
+import os
+from pathlib import Path
+
+###########################################################
+## Find all of the c files from the current directory.
+## Meant to be used like:
+##    src_files = all_subdir_c_files()
+###########################################################
+
+def all_subdir_c_files():
+    """
+    Find all `.c` files under the current directory.
+
+    Returns:
+        list: A list of paths to all `.c` files under the current directory and its subdirectories.
+    """
+    # Get the current working directory
+    current_directory = Path(os.getcwd()).resolve()
+    found_files = []
+
+    # Use rglob to search for `.c` files in the current directory and its subdirectories
+    for file_path in current_directory.rglob("*.c"):
+        if file_path.is_file():
+            found_files.append(str(file_path))
+
+    return found_files
+
+###########################################################
+## Find all of the cpp files under the named directories.
+## LOCAL_CPP_EXTENSION is respected if set.
+## Meant to be used like:
+##    src_files = all_cpp_files_under(["src", "tests"], local_cpp_extension=".cpp")
+###########################################################
+
+def all_cpp_files_under(base_directories, local_cpp_extension=".cpp"):
+    """
+    Find all `.cpp` files (or other specified extension) under the named directories.
+
+    Args:
+        base_directories (list of str or Path): List of directories to search for `.cpp` files.
+        local_cpp_extension (str): The extension to search for (e.g., `.cpp` or `.cc`).
+
+    Returns:
+        list: A list of paths to all `.cpp` files (or files with the specified extension) under the given directories.
+    """
+    # Get the current working directory
+    current_directory = Path(os.getcwd()).resolve()
+    found_files = []
+
+    for base_dir in base_directories:
+        base_dir_path = current_directory / base_dir
+
+        if not base_dir_path.exists() or not base_dir_path.is_dir():
+            continue
+
+        # Use rglob to search for files with the given extension in the specified directory and its subdirectories
+        for file_path in base_dir_path.rglob(f"*{local_cpp_extension}"):
+            # Exclude hidden files (those that start with a dot)
+            if file_path.is_file() and not file_path.name.startswith('.'):
+                found_files.append(str(file_path))
+
+    # Sort and return the found files
+    return sorted(found_files)
+
+###########################################################
+## Find all of the cpp files from the current directory.
+## Meant to be used like:
+##    src_files = all_subdir_cpp_files(local_cpp_extension=".cpp")
+###########################################################
+
+def all_subdir_cpp_files(local_cpp_extension=".cpp"):
+    """
+    Find all `.cpp` files (or other specified extension) under the current directory.
+
+    Args:
+        local_cpp_extension (str): The extension to search for (e.g., `.cpp` or `.cc`).
+
+    Returns:
+        list: A list of paths to all `.cpp` files (or files with the specified extension) under the current directory.
+    """
+    # Get the current working directory
+    current_directory = Path(os.getcwd()).resolve()
+    found_files = []
+
+    # Use rglob to search for files with the given extension in the current directory and its subdirectories
+    for file_path in current_directory.rglob(f"*{local_cpp_extension}"):
+        # Exclude hidden files (those that start with a dot)
+        if file_path.is_file() and not file_path.name.startswith('.'):
+            found_files.append(str(file_path))
+
+    # Sort and return the found files
+    return sorted(found_files)
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
