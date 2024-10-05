@@ -28,6 +28,8 @@ all_docs = []
 # attributes.
 all_modules = []
 
+all_make_module_info_json_modules = []
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
