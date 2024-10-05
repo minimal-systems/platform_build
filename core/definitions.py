@@ -81,6 +81,9 @@ all_disabled_presubmit_tests = []
 # List to hold all compatibility suites mentioned in local_compatibility_suites in module_info.bp
 all_compatibility_suites = []
 
+# List to hold all compatibility suite files to be distributed
+all_compatibility_dist_files = []
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
