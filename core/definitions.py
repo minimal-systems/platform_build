@@ -189,6 +189,44 @@ def gcno_touch_rule(source_file, gcno_file):
     else:
         print(f"Source file {source_file} does not exist. GCNO file not touched or created.")
 
+###########################################################
+
+###########################################################
+## Retrieve the directory of the current makefile
+## Must be called before including any other makefile!!
+###########################################################
+
+def get_module_dir(module_file, build_system_dir, out_dir):
+    """
+    Retrieves the directory of the current module file (e.g., `module_info.bp`).
+
+    Args:
+        module_file (str or Path): Path to the current module file (e.g., `module_info.bp`).
+        build_system_dir (str or Path): Path to the build system directory.
+        out_dir (str or Path): Path to the output directory.
+
+    Returns:
+        str: Directory of the current module file.
+
+    Raises:
+        RuntimeError: If `get_module_dir` is called after other modules have been included.
+    """
+    # Convert input paths to Path objects for easier handling
+    module_file = Path(module_file)
+    build_system_dir = Path(build_system_dir)
+    out_dir = Path(out_dir)
+
+    # Check if the module file is valid and exists
+    if not module_file.exists():
+        raise FileNotFoundError(f"Module file {module_file} does not exist.")
+
+    # Check if the module file is in build_system_dir or out_dir
+    if module_file.is_relative_to(build_system_dir) or module_file.is_relative_to(out_dir):
+        raise RuntimeError("get_module_dir must be called before including other module files.")
+
+    # Return the directory of the current module file
+    return str(module_file.parent)
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
