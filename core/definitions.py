@@ -34,6 +34,9 @@ all_make_module_info_json_modules = []
 all_non_modules = []
 non_modules_without_license_metadata = []
 
+# list of copied targets that need license metadata.
+all_copied_targets = []
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
