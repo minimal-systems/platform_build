@@ -516,6 +516,32 @@ def all_named_files_under(file_pattern, base_directories, local_path="."):
             if file_path.is_file():
                 found_files.append(str(file_path))
 
+    return
+
+###########################################################
+## Find all of the files under the current directory with
+## the specified name.
+###########################################################
+
+def all_subdir_named_files(file_pattern):
+    """
+    Find all of the files under the current directory with the specified name.
+
+    Args:
+        file_pattern (str): The file name pattern to search for (e.g., "*.h").
+
+    Returns:
+        list: A list of paths to all files that match the specified pattern under the current directory.
+    """
+    # Get the current working directory using os.getcwd()
+    current_directory = Path(os.getcwd()).resolve()
+    found_files = []
+
+    # Use rglob to search for files that match the file pattern in the current directory
+    for file_path in current_directory.rglob(file_pattern):
+        if file_path.is_file():
+            found_files.append(str(file_path))
+
     return found_files
 
 def get_host_2nd_arch():
