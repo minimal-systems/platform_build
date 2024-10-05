@@ -69,6 +69,9 @@ target_display = "target"
 host_display = "host"
 host_cross_display = "host cross"
 
+# All installed initrc files
+all_init_rc_installed_pairs = []
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
