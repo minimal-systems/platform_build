@@ -3,6 +3,19 @@ import platform
 import importlib.util
 import sys
 
+##
+## Common build system definitions.  Mostly standard
+## commands for building various types of targets, which
+## are used by others to construct the final targets.
+##
+
+# These are variables we use to collect overall lists
+# of things being processed.
+
+# Full paths to all of the documentation
+all_docs = []
+
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
