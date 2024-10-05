@@ -544,6 +544,39 @@ def all_subdir_named_files(file_pattern):
 
     return found_files
 
+###########################################################
+## Find all of the c files under the named directories.
+## Meant to be used like:
+##    src_files = all_c_files_under(["src", "tests"])
+###########################################################
+
+def all_c_files_under(base_directories):
+    """
+    Find all of the `.c` files under the named directories.
+
+    Args:
+        base_directories (list of str or Path): List of directories to search for `.c` files.
+
+    Returns:
+        list: A list of paths to all `.c` files under the given directories.
+    """
+    # Get the current working directory using os.getcwd()
+    local_path = Path(os.getcwd()).resolve()
+    found_files = []
+
+    for base_dir in base_directories:
+        base_dir_path = local_path / base_dir
+
+        if not base_dir_path.exists() or not base_dir_path.is_dir():
+            continue
+
+        # Use rglob to search for `.c` files in the specified directory and its subdirectories
+        for file_path in base_dir_path.rglob("*.c"):
+            if file_path.is_file():
+                found_files.append(str(file_path))
+
+    return found_files
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
