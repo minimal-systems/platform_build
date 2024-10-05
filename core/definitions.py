@@ -196,6 +196,34 @@ def gcno_touch_rule(source_file, gcno_file):
 ## Must be called before including any other makefile!!
 ###########################################################
 
+def call_my_dir(module_file, build_system_dir, out_dir):
+    """
+    Retrieves the directory of the current module file (e.g., `module_info.bp`).
+
+    Args:
+        module_file (str or Path): Path to the current module file (e.g., `module_info.bp`).
+        build_system_dir (str or Path): Path to the build system directory.
+        out_dir (str or Path): Path to the output directory.
+
+    Returns:
+        Path: Directory of the current module file.
+
+    Raises:
+        RuntimeError: If `call_my_dir` is called after other module files have been included.
+    """
+    module_file = Path(module_file).resolve()
+    build_system_dir = Path(build_system_dir).resolve()
+    out_dir = Path(out_dir).resolve()
+
+    if not module_file.exists():
+        raise FileNotFoundError(f"Module file {module_file} does not exist.")
+
+    # Ensure that call_my_dir is called before other module files are included.
+    if module_file.is_relative_to(build_system_dir) or module_file.is_relative_to(out_dir):
+        raise RuntimeError("call_my_dir must be called before including other module files.")
+
+    return module_file.parent
+
 def get_module_dir(module_file, build_system_dir, out_dir):
     """
     Retrieves the directory of the current module file (e.g., `module_info.bp`).
@@ -259,6 +287,14 @@ def all_module_info_under(base_dir):
 # for file in module_info_files:
 #     print(f" - {file}")
 
+###########################################################
+## Look under a directory for makefiles that don't have parent
+## makefiles.
+###########################################################
+
+# $(1): directory to search under
+# Ignores $(1)/module_info.bp
+
 def first_module_info_under(base_dir, filename="module_info.bp", min_depth=0, max_depth=None):
     """
     Retrieve a list of all specified files (e.g., `module_info.bp`) in the given directory and its subdirectories.
@@ -296,6 +332,11 @@ def first_module_info_under(base_dir, filename="module_info.bp", min_depth=0, ma
 # print("Found module_info.bp files:")
 # for file in module_info_files:
 #     print(f" - {file}")
+
+###########################################################
+## Retrieve a list of all module_info.bp immediately below your directory
+## Must be called before including any other module_info.bp!!
+###########################################################
 
 def all_subdir_module_info(module_file, build_system_dir, out_dir, filename="module_info.bp", min_depth=0, max_depth=None):
     """
@@ -346,6 +387,40 @@ def all_subdir_module_info(module_file, build_system_dir, out_dir, filename="mod
 # print("Found module_info.bp files immediately below the module directory:")
 # for file in module_info_files:
 #     print(f" - {file}")
+
+###########################################################
+## Look in the named list of directories for makefiles,
+## relative to the current directory.
+## Must be called before including any other makefile!!
+###########################################################
+
+# $(1): List of directories to look for under this directory
+def find_named_subdir_makefiles(directories, current_dir):
+    """
+    Look for 'module_info.bp' files in the named list of directories relative to the current directory.
+    Searches all subdirectories recursively.
+
+    Args:
+        directories (list of str or Path): List of directories to look for `module_info.bp` under `current_dir`.
+        current_dir (str or Path): The directory relative to which to search for `module_info.bp` files.
+
+    Returns:
+        list: A list of paths to all found `module_info.bp` files.
+    """
+    current_dir = Path(current_dir).resolve()
+    found_files = []
+
+    for directory in directories:
+        dir_path = current_dir / directory
+
+        if not dir_path.exists() or not dir_path.is_dir():
+            continue
+
+        # Use rglob to recursively search for 'module_info.bp' in the directory and its subdirectories
+        for makefile in dir_path.rglob("module_info.bp"):
+            found_files.append(str(makefile))
+
+    return found_files
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
