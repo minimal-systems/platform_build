@@ -87,6 +87,13 @@ all_compatibility_dist_files = []
 # List to hold all link type entries
 all_link_types = []
 
+# List to hold all exported/imported include entries
+exports_list = []
+
+# List to hold all modules already converted to Soong
+soong_already_converted = []
+
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
