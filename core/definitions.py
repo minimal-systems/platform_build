@@ -263,6 +263,44 @@ def all_module_info_under(base_dir):
 # for file in module_info_files:
 #     print(f" - {file}")
 
+def first_module_info_under(base_dir, filename="module_info.bp", min_depth=0, max_depth=None):
+    """
+    Retrieve a list of all specified files (e.g., `module_info.bp`) in the given directory and its subdirectories.
+    Allows control over minimum and maximum depth to filter results.
+
+    Args:
+        base_dir (str or Path): The base directory to search in.
+        filename (str): The filename to search for (default is "module_info.bp").
+        min_depth (int): Minimum depth of subdirectories to include files (default is 0, which includes all files).
+        max_depth (int or None): Maximum depth of subdirectories to include files (default is None, which means no limit).
+
+    Returns:
+        list: List of paths to the specified files found in the directory and its subdirectories.
+    """
+    base_dir = Path(base_dir).resolve()  # Convert to absolute Path object for consistency
+
+    # List to store the paths of found files
+    found_files = []
+
+    # Use rglob to find all instances of the specified filename
+    for file in base_dir.rglob(filename):
+        # Calculate the depth of the current file relative to the base directory
+        relative_depth = len(file.relative_to(base_dir).parts)
+
+        # Check if the file is within the specified depth range
+        if relative_depth >= min_depth and (max_depth is None or relative_depth <= max_depth):
+            found_files.append(str(file))  # Append the path as a string
+
+    return found_files
+
+#TODO: add this to testcases
+# # Example usage
+# base_dir_example = "/run/media/kjones/build/android/minimal_linux/"
+# module_info_files = first_module_info_under(base_dir_example, filename="module_info.bp", min_depth=2)
+# print("Found module_info.bp files:")
+# for file in module_info_files:
+#     print(f" - {file}")
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
