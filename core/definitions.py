@@ -54,6 +54,16 @@ all_findbug_files = []
 # Packages with certificate violation
 certificate_violation_modules = []
 
+# Target and host installed module's dependencies on shared libraries.
+# They are list of "<module_name>:<installed_file>:lib1,lib2...".
+# 2nd arch variant dependencies on shared libraries is also stored.
+target_dependencies_on_shared_libraries = {}
+target_2nd_arch_variant_dependencies_on_shared_libraries = {}
+host_dependencies_on_shared_libraries = {}
+host_2nd_arch_dependencies_on_shared_libraries = {}
+host_cross_dependencies_on_shared_libraries = {}
+host_cross_2nd_arch_dependencies_on_shared_libraries = {}
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
