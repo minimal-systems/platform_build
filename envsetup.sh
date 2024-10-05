@@ -6,6 +6,8 @@ export BUILD_TOP=$(cat /tmp/build_top)
 export TOP=$BUILD_TOP
 export OUT_DIR=$BUILD_TOP/out
 export PYTHONPATH="" # Clear PYTHONPATH
+# Disable pycache
+export PYTHONDONTWRITEBYTECODE=1
 
 # Check if required Python packages are installed on Arch Linux
 check_dependencies() {
