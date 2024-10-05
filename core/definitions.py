@@ -227,6 +227,42 @@ def get_module_dir(module_file, build_system_dir, out_dir):
     # Return the directory of the current module file
     return str(module_file.parent)
 
+###########################################################
+# Retrieve a list of all `module_info.bp` files immediately
+# below the specified directory.
+#
+# Args:
+#     base_dir (str or Path): The base directory to search in.
+#
+# Returns:
+#     list: List of paths to `module_info.bp` files found in the specified directory.
+###########################################################
+
+def all_module_info_under(base_dir):
+    """
+    Retrieve a list of all `module_info.bp` files in the specified directory and its subdirectories.
+
+    Args:
+        base_dir (str or Path): The base directory to search in.
+
+    Returns:
+        list: List of paths to `module_info.bp` files found in the specified directory and its subdirectories.
+    """
+    base_dir = Path(base_dir)  # Convert to Path object for easier manipulation
+
+    # Use rglob to find all `module_info.bp` files recursively in base_dir and its subdirectories
+    module_info_files = [str(file) for file in base_dir.rglob("module_info.bp")]
+
+    return module_info_files
+
+#TODO: add this to testcases
+# # Example usage
+# base_dir_example = "/run/media/kjones/build/android/minimal_linux/"
+# module_info_files = all_module_info_under(base_dir_example)
+# print("Found module_info.bp files:")
+# for file in module_info_files:
+#     print(f" - {file}")
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
