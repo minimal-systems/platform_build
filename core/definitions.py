@@ -211,20 +211,16 @@ def get_module_dir(module_file, build_system_dir, out_dir):
     Raises:
         RuntimeError: If `get_module_dir` is called after other modules have been included.
     """
-    # Convert input paths to Path objects for easier handling
-    module_file = Path(module_file)
-    build_system_dir = Path(build_system_dir)
-    out_dir = Path(out_dir)
+    module_file = Path(module_file).resolve()
+    build_system_dir = Path(build_system_dir).resolve()
+    out_dir = Path(out_dir).resolve()
 
-    # Check if the module file is valid and exists
     if not module_file.exists():
         raise FileNotFoundError(f"Module file {module_file} does not exist.")
 
-    # Check if the module file is in build_system_dir or out_dir
     if module_file.is_relative_to(build_system_dir) or module_file.is_relative_to(out_dir):
         raise RuntimeError("get_module_dir must be called before including other module files.")
 
-    # Return the directory of the current module file
     return str(module_file.parent)
 
 ###########################################################
@@ -298,6 +294,56 @@ def first_module_info_under(base_dir, filename="module_info.bp", min_depth=0, ma
 # base_dir_example = "/run/media/kjones/build/android/minimal_linux/"
 # module_info_files = first_module_info_under(base_dir_example, filename="module_info.bp", min_depth=2)
 # print("Found module_info.bp files:")
+# for file in module_info_files:
+#     print(f" - {file}")
+
+def all_subdir_module_info(module_file, build_system_dir, out_dir, filename="module_info.bp", min_depth=0, max_depth=None):
+    """
+    Retrieve a list of `module_info.bp` files in subdirectories of the specified module file directory.
+    Utilizes `get_module_dir` to get the base directory and allows specifying depth constraints.
+
+    Args:
+        module_file (str or Path): Path to the current module file (e.g., `module_info.bp`).
+        build_system_dir (str or Path): Path to the build system directory.
+        out_dir (str or Path): Path to the output directory.
+        filename (str): The filename to search for (default is "module_info.bp").
+        min_depth (int): Minimum depth of subdirectories to include files (default is 0).
+        max_depth (int or None): Maximum depth of subdirectories to include files (default is None).
+
+    Returns:
+        list: List of paths to the specified `filename` found immediately below the module directory.
+    """
+    # Get the module directory using `get_module_dir`
+    base_dir = get_module_dir(module_file, build_system_dir, out_dir)
+    base_dir = Path(base_dir)
+
+    # List to hold paths of `filename` found in subdirectories
+    found_files = []
+
+    print(f"Searching for {filename} files in {base_dir} and its subdirectories...\n")
+
+    # Use rglob to find all instances of the specified filename
+    for file in base_dir.rglob(filename):
+        # Calculate the depth of the current file relative to the base directory
+        relative_depth = len(file.relative_to(base_dir).parts)
+
+        # Print debugging information
+        print(f"Found: {file}, Relative Depth: {relative_depth}")
+
+        # Check if the file is within the specified depth range
+        if relative_depth >= min_depth and (max_depth is None or relative_depth <= max_depth):
+            found_files.append(str(file))  # Append the path as a string
+
+    return found_files
+
+# TODO: add this to testcases
+# Example usage:
+# module_file_example = "/run/media/kjones/build/android/minimal_linux/vendor/generic/module_info.bp"
+# build_system_dir_example = "/run/media/kjones/build/android/minimal_linux/build"
+# out_dir_example = "/run/media/kjones/build/android/minimal_linux/out"
+# Retrieve `module_info.bp` files immediately below the directory of the current module file
+# module_info_files = all_subdir_module_info(module_file_example, build_system_dir_example, out_dir_example)
+# print("Found module_info.bp files immediately below the module directory:")
 # for file in module_info_files:
 #     print(f" - {file}")
 
