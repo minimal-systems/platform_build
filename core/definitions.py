@@ -84,6 +84,9 @@ all_compatibility_suites = []
 # List to hold all compatibility suite files to be distributed
 all_compatibility_dist_files = []
 
+# List to hold all link type entries
+all_link_types = []
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
