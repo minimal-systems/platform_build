@@ -2,6 +2,7 @@ import os
 import platform
 import importlib.util
 import sys
+from pathlib import Path
 
 ##
 ## Common build system definitions.  Mostly standard
@@ -154,6 +155,39 @@ def boolean_not(var):
         str: "true" if the input string does not contain "true", otherwise an empty string.
     """
     return "" if "true" in var else "true"
+
+###########################################################
+# Rule for touching GCNO files.
+# Args:
+#     source_file (str or Path): Path to the source file (dependency).
+#     gcno_file (str or Path): Path to the GCNO file to be touched.
+###########################################################
+
+def gcno_touch_rule(source_file, gcno_file):
+    """
+    Updates the timestamp of the GCNO file if the source file exists.
+    If the GCNO file does not exist, it will be created.
+
+    Args:
+        source_file (str or Path): Path to the source file (dependency).
+        gcno_file (str or Path): Path to the GCNO file to be touched.
+    """
+    # Convert input paths to Path objects for consistency
+    source_file = Path(source_file)
+    gcno_file = Path(gcno_file)
+
+    # Check if the source file exists
+    if source_file.exists():
+        # If the gcno file exists, update its timestamp
+        if gcno_file.exists():
+            gcno_file.touch()  # This updates the timestamp of the file
+            print(f"Updated timestamp for existing file: {gcno_file}")
+        else:
+            # Create the gcno file if it does not exist
+            gcno_file.touch()
+            print(f"Created new GCNO file: {gcno_file}")
+    else:
+        print(f"Source file {source_file} does not exist. GCNO file not touched or created.")
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
