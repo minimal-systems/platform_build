@@ -51,6 +51,9 @@ all_sdk_files = []
 # All findbugs xml files
 all_findbug_files = []
 
+# Packages with certificate violation
+certificate_violation_modules = []
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
