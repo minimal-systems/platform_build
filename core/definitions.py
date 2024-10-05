@@ -669,6 +669,150 @@ def all_subdir_cpp_files(local_cpp_extension=".cpp"):
     # Sort and return the found files
     return sorted(found_files)
 
+
+###########################################################
+## Find all of the S files under the named directories.
+## Meant to be used like:
+##    src_files = all_S_files_under(["src", "tests"])
+###########################################################
+
+def all_S_files_under(base_directories):
+    """
+    Find all `.S` files under the named directories.
+
+    Args:
+        base_directories (list of str or Path): List of directories to search for `.S` files.
+
+    Returns:
+        list: A list of paths to all `.S` files under the given directories.
+    """
+    return find_subdir_files("*.S", base_directories)
+
+
+###########################################################
+## Find all of the html files under the named directories.
+## Meant to be used like:
+##    src_files = all_html_files_under(["src", "tests"])
+###########################################################
+
+def all_html_files_under(base_directories):
+    """
+    Find all `.html` files under the named directories.
+
+    Args:
+        base_directories (list of str or Path): List of directories to search for `.html` files.
+
+    Returns:
+        list: A list of paths to all `.html` files under the given directories.
+    """
+    return find_subdir_files("*.html", base_directories)
+
+
+###########################################################
+## Find all of the html files from here. Meant to be used like:
+##    src_files = all_subdir_html_files()
+###########################################################
+
+def all_subdir_html_files():
+    """
+    Find all `.html` files under the current directory and its subdirectories.
+
+    Returns:
+        list: A list of paths to all `.html` files under the current directory.
+    """
+    return all_html_files_under([os.getcwd()])
+
+
+###########################################################
+## Find all of the files matching pattern
+##    src_files = find_subdir_files(<pattern>, [<directories>])
+###########################################################
+
+def find_subdir_files(pattern, base_directories):
+    """
+    Find all of the files matching the given pattern under the named directories.
+
+    Args:
+        pattern (str): The pattern to search for (e.g., `*.c`).
+        base_directories (list of str or Path): List of directories to search under.
+
+    Returns:
+        list: A list of paths to all files matching the pattern under the given directories.
+    """
+    found_files = []
+    for base_dir in base_directories:
+        base_dir_path = Path(base_dir).resolve()
+        if not base_dir_path.exists() or not base_dir_path.is_dir():
+            continue
+
+        # Use rglob to search for files matching the pattern in the specified directory and subdirectories
+        for file_path in base_dir_path.rglob(pattern):
+            if file_path.is_file():
+                found_files.append(str(file_path))
+    return sorted(found_files)
+
+
+###########################################################
+# Find the files in the subdirectory $1 of LOCAL_DIR matching pattern $2,
+# filtering out files $3
+# e.g.
+#     src_files += find_subdir_subdir_files("css", "*.cpp", "DontWantThis.cpp")
+###########################################################
+
+def find_subdir_subdir_files(subdir, pattern, exclude_pattern=None):
+    """
+    Find all files in the given subdirectory matching the pattern, excluding the files that match `exclude_pattern`.
+
+    Args:
+        subdir (str): The subdirectory to search in.
+        pattern (str): The pattern to search for (e.g., `*.cpp`).
+        exclude_pattern (str): A pattern to exclude files (optional).
+
+    Returns:
+        list: A list of paths to all files matching the pattern, excluding files that match `exclude_pattern`.
+    """
+    current_dir = Path(os.getcwd()).resolve() / subdir
+    if not current_dir.exists() or not current_dir.is_dir():
+        return []
+
+    # Search for files in the specified subdirectory
+    files = [str(file_path) for file_path in current_dir.glob(pattern) if file_path.is_file()]
+
+    # Filter out files matching the exclude pattern, if specified
+    if exclude_pattern:
+        files = [file for file in files if not fnmatch.fnmatch(file, str(current_dir / exclude_pattern))]
+
+    return sorted(files)
+
+
+###########################################################
+## Find all of the files in the directory, excluding hidden files
+##    src_files = find_subdir_assets(<directory>)
+###########################################################
+
+def find_subdir_assets(base_directory=None):
+    """
+    Find all files in the given directory, excluding hidden files.
+
+    Args:
+        base_directory (str or Path): The directory to search in. If None, return an empty list.
+
+    Returns:
+        list: A list of paths to all non-hidden files in the given directory.
+    """
+    if not base_directory:
+        print(f"Warning: Empty argument supplied to find_subdir_assets in {os.getcwd()}")
+        return []
+
+    base_dir_path = Path(base_directory).resolve()
+    if not base_dir_path.exists() or not base_dir_path.is_dir():
+        return []
+
+    # Find all files, excluding hidden files (those starting with a dot)
+    found_files = [str(file_path) for file_path in base_dir_path.rglob("*") if
+                   file_path.is_file() and not file_path.name.startswith(".")]
+    return sorted(found_files)
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
