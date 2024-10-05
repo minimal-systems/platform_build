@@ -93,6 +93,36 @@ exports_list = []
 # List to hold all modules already converted to Soong
 soong_already_converted = []
 
+###########################################################
+## Debugging; prints a variable list to stdout
+###########################################################
+
+# Function to print variable names and their corresponding values
+def print_vars(variable_names, variables):
+    """
+    Print the names of variables and their corresponding values.
+
+    Args:
+        variable_names (list): List of variable names as strings.
+        variables (dict): Dictionary containing variable names as keys and their values as list of strings.
+    """
+    # Check if variable_names is empty
+    if not variable_names:
+        print("No variable names provided.")
+        return
+
+    # Print each variable and its values
+    for var in variable_names:
+        # Print the variable name and the number of values it contains (if applicable)
+        value_count = len(variables.get(var, []))
+        print(f"{var}: ({value_count} values)")
+
+        # If the variable has values, print them with indentation
+        if var in variables and variables[var]:
+            for value in variables[var]:
+                print(f"  {value}")  # Two spaces for indentation
+        else:
+            print("  (No values found)")
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
