@@ -124,6 +124,37 @@ def print_vars(variable_names, variables):
         else:
             print("  (No values found)")
 
+###########################################################
+# Evaluates to "true" if the string contains the word "true",
+# and returns an empty string otherwise.
+# Arguments:
+#     var (str): A variable or string to test.
+###########################################################
+
+def true_or_empty(var):
+    """
+    Returns "true" if the string contains "true", otherwise returns an empty string.
+
+    Args:
+        var (str): A variable or string to test.
+
+    Returns:
+        str: "true" if the input string contains "true", otherwise an empty string.
+    """
+    return "true" if "true" in var else ""
+
+def boolean_not(var):
+    """
+    Returns "true" if the input string does NOT contain "true", otherwise returns an empty string.
+
+    Args:
+        var (str): A variable or string to test.
+
+    Returns:
+        str: "true" if the input string does not contain "true", otherwise an empty string.
+    """
+    return "" if "true" in var else "true"
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
