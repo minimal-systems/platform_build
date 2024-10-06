@@ -4,6 +4,7 @@ import platform
 import importlib.util
 import sys
 from pathlib import Path
+import glob
 
 ##
 ## Common build system definitions.  Mostly standard
@@ -577,8 +578,6 @@ def all_c_files_under(base_directories):
                 found_files.append(str(file_path))
 
     return found_files
-import os
-from pathlib import Path
 
 ###########################################################
 ## Find all of the c files from the current directory.
@@ -829,6 +828,47 @@ def find_other_html_files(base_directories):
     """
     return all_html_files_under(base_directories)
 
+###########################################################
+# Use utility find to find given files in the given subdirs.
+# This function uses $(1), instead of LOCAL_PATH as the base.
+# $(1): the base dir, relative to the root of the source tree.
+# $(2): the file name pattern to be passed to find as "-name".
+# $(3): a list of subdirs of the base dir.
+# Returns: a list of paths relative to the base dir.
+###########################################################
+
+def find_files_in_subdirs(base_dir, pattern, subdirs):
+    """
+    Find files in the given subdirectories relative to the base directory.
+
+    Args:
+        base_dir (str): The base directory relative to the root of the source tree.
+        pattern (str): The file name pattern to search for (e.g., "*.cpp").
+        subdirs (list of str): List of subdirectories relative to the base directory.
+
+    Returns:
+        list: A sorted list of paths relative to the base directory.
+    """
+    result_files = set()
+
+    for subdir in subdirs:
+        # Construct full directory path
+        search_dir = os.path.join(base_dir, subdir)
+
+        # Use glob to find matching files, excluding hidden files and directories
+        files = glob.glob(f'{search_dir}/**/{pattern}', recursive=True)
+        filtered_files = [os.path.relpath(f, base_dir) for f in files if not os.path.basename(f).startswith('.')]
+
+        result_files.update(filtered_files)
+
+    return sorted(result_files)
+
+
+# Example usage:
+# base_dir = "/path/to/base"
+# pattern = "*.cpp"
+# subdirs = ["dir1", "dir2"]
+# print(find_files_in_subdirs(base_dir, pattern, subdirs))
 
 
 def get_host_2nd_arch():
