@@ -921,6 +921,49 @@ def find_parent_file(start_dir, filename_pattern):
     # Return None if no match is found
     return None
 
+###########################################################
+## Find test data in a form required by local_test_data.
+## $(1): the base dir, relative to the root of the source tree.
+## $(2): the file name pattern to be passed to find as "-name"
+## $(3): a list of subdirs of the base dir
+###########################################################
+
+def find_test_data_in_subdirs(base_dir, filename_pattern, subdirs):
+    """
+    Find test data in a form required by LOCAL_TEST_DATA.
+
+    Args:
+        base_dir (str): The base directory relative to the root of the source tree.
+        filename_pattern (str): The file name pattern to search for (e.g., "*.txt").
+        subdirs (list of str): List of subdirectories relative to the base directory.
+
+    Returns:
+        list of str: A list of strings in the format "base_dir:file_path".
+                     Each file path is relative to the base directory.
+
+    Example:
+        base_dir = "/path/to/base"
+        filename_pattern = "*.txt"
+        subdirs = ["subdir1", "subdir2"]
+        result = find_test_data_in_subdirs(base_dir, filename_pattern, subdirs)
+        print(result)  # Example output: ['/path/to/base:subdir1/file1.txt', '/path/to/base:subdir2/file2.txt']
+    """
+    result_files = []
+
+    for subdir in subdirs:
+        # Construct the full search directory path
+        search_dir = os.path.join(base_dir, subdir)
+
+        # Use glob to find all matching files in subdirectories recursively
+        files = glob.glob(f'{search_dir}/**/{filename_pattern}', recursive=True)
+
+        # Filter out hidden files and directories (those that start with '.')
+        filtered_files = [os.path.relpath(f, base_dir) for f in files if not os.path.basename(f).startswith('.')]
+
+        # Format results in "base_dir:file_path" format
+        result_files.extend([f"{base_dir}:{file}" for file in filtered_files])
+
+    return sorted(result_files)
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
