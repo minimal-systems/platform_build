@@ -965,6 +965,25 @@ def find_test_data_in_subdirs(base_dir, filename_pattern, subdirs):
 
     return sorted(result_files)
 
+def add_dependency(target, dependency):
+    """
+    Define a dependency relationship between a target and a dependency.
+
+    Args:
+        target (str): The target file or task.
+        dependency (str): The dependency file or task.
+
+    Returns:
+        tuple: A tuple representing the dependency relationship (target, dependency).
+
+    Example:
+        target = "build/output.o"
+        dependency = "src/input.c"
+        result = add_dependency(target, dependency)
+        print(result)  # Output: ('build/output.o', 'src/input.c')
+    """
+    return target, dependency
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
