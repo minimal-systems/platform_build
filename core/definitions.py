@@ -984,6 +984,25 @@ def add_dependency(target, dependency):
     """
     return target, dependency
 
+def reverse_list(lst):
+    """
+    Reverse the order of a list.
+
+    Args:
+        lst (list): A list of elements to be reversed.
+
+    Returns:
+        list: A new list with the elements in reversed order.
+
+    Example:
+        original_list = ["a", "b", "c", "d"]
+        reversed_list = reverse_list(original_list)
+        print(reversed_list)  # Output: ['d', 'c', 'b', 'a']
+    """
+    if not lst:
+        return []
+    return reverse_list(lst[1:]) + [lst[0]]
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
