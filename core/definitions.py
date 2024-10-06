@@ -863,12 +863,63 @@ def find_files_in_subdirs(base_dir, pattern, subdirs):
 
     return sorted(result_files)
 
-
 # Example usage:
 # base_dir = "/path/to/base"
 # pattern = "*.cpp"
 # subdirs = ["dir1", "dir2"]
 # print(find_files_in_subdirs(base_dir, pattern, subdirs))
+
+###########################################################
+## Scan through each directory of $(1) looking for files
+## that match $(2) using $(wildcard).  Useful for seeing if
+## a given directory or one of its parents contains
+## a particular file.  Returns the first match found,
+## starting furthest from the root.
+###########################################################
+
+def find_parent_file(start_dir, filename_pattern):
+    """
+    Scan through each directory of `start_dir` looking for files that match `filename_pattern`.
+    Useful for checking if a directory or one of its parents contains a particular file.
+    Returns the first match found, starting furthest from the root.
+
+    Args:
+        start_dir (str): The directory to start searching from.
+        filename_pattern (str): The file name pattern to match (e.g., "Makefile").
+
+    Returns:
+        str: The path of the first found file or None if none of the files are found.
+
+    Example:
+        start_dir = "/path/to/start/dir"
+        filename_pattern = "Makefile"
+        result = find_parent_file(start_dir, filename_pattern)
+        print(result)  # Outputs: "/path/to/start/Makefile" if found, or None if not found.
+    """
+    # Normalize start_dir to an absolute path
+    current_dir = os.path.abspath(start_dir)
+
+    # Traverse up the directory tree until we reach the root
+    while True:
+        # Use glob to find matching files in the current directory
+        matched_files = [os.path.join(current_dir, f) for f in os.listdir(current_dir)
+                         if os.path.isfile(os.path.join(current_dir, f)) and f == filename_pattern]
+
+        # Return the first match found, if any
+        if matched_files:
+            return matched_files[0]
+
+        # Move up one directory level
+        parent_dir = os.path.dirname(current_dir)
+
+        # Stop if we reach the root directory (no more parent directories)
+        if current_dir == parent_dir:
+            break
+
+        current_dir = parent_dir
+
+    # Return None if no match is found
+    return None
 
 
 def get_host_2nd_arch():
