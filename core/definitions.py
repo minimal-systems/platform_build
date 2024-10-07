@@ -1354,8 +1354,6 @@ def non_module_license_metadata_rule(target, all_non_modules, all_targets, build
     build_command += f"-r {' '.join(path)} "
     build_command += f"@{intermediate_dir} -o {meta_path}"
 
-    # Print the build command for debugging
-    print(f"Executing: {build_command}")
 
     # Update all_targets with the metadata
     target_metadata = {
