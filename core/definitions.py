@@ -1285,6 +1285,85 @@ def license_metadata_rule(target, all_modules, all_targets, build_license_metada
     for meta_lic in delayed_meta_lics:
         _license_metadata_rule(target, meta_lic, all_modules, all_targets, build_license_metadata_cmd, intermediates_dir, out_dir)
 
+def non_module_license_metadata_rule(target, all_non_modules, all_targets, build_license_metadata_cmd, out_dir):
+    """
+    License metadata build rule for a non-module target.
+
+    Args:
+        target (str): The non-module target for which the license metadata needs to be built.
+        all_non_modules (dict): Dictionary representing all non-module targets with their attributes.
+        all_targets (list): List of all targets with their attributes.
+        build_license_metadata_cmd (str): Command to build license metadata.
+        out_dir (str): The base output directory for the build.
+
+    Returns:
+        None: The function updates the `all_targets` list in-place.
+    """
+    # Define the directory and metadata path
+    dir_path = license_metadata_dir(target, out_dir)
+    meta_path = os.path.join(dir_path, f"{os.path.basename(target)}.meta_lic")
+
+    # Retrieve dependencies, notices, paths, and root mappings for the target
+    deps = sorted([
+        f"{next((t for t in all_targets if t['name'] == dep.split(':')[0]), {}).get('meta_lic', '')}:{':'.join(dep.split(':')[1:])}"
+        for dep in all_non_modules[target].get("dependencies", [])
+        if dep
+    ])
+    notices = sorted(all_non_modules[target].get("notices", []))
+    path = sorted(all_non_modules[target].get("path", []))
+    install_map = all_non_modules[target].get("root_mappings", "")
+
+    # Create the argument file directory
+    intermediate_dir = os.path.join(out_dir, "intermediates", "PACKAGING", "notice", os.path.basename(meta_path), "arguments")
+    os.makedirs(os.path.dirname(intermediate_dir), exist_ok=True)
+
+    # Create argument file content
+    args_to_dump = [
+        f"-k {' '.join(sorted(all_non_modules[target].get('license_kinds', [])))}",
+        f"-c {' '.join(sorted(all_non_modules[target].get('license_conditions', [])))}",
+        f"-n {' '.join(notices)}",
+        f"-d {' '.join(deps)}",
+        f"-s {' '.join(all_non_modules[target].get('dependencies', []))}",
+        f"-m {' '.join(install_map)}",
+        f"-t {target}",
+        f"-r {' '.join(path)}"
+    ]
+
+    # Write the arguments to the file
+    with open(intermediate_dir, 'w') as file:
+        file.write("\n".join([arg for arg in args_to_dump if arg]))
+
+    # Construct the build command
+    build_command = f"out_dir={out_dir} {build_license_metadata_cmd} -mt raw -mc unknown "
+    if all_non_modules[target].get("is_container", False):
+        build_command += "--is_container "
+    build_command += f"-r {' '.join(path)} "
+    build_command += f"@{intermediate_dir} -o {meta_path}"
+
+    # Print the build command (for debugging purposes)
+    print(f"Executing: {build_command}")
+
+    # Prepare metadata to be added to the list
+    target_metadata = {
+        "name": target,
+        "private_kinds": sorted(all_non_modules[target].get("license_kinds", [])),
+        "private_conditions": sorted(all_non_modules[target].get("license_conditions", [])),
+        "private_notices": notices,
+        "private_notice_deps": deps,
+        "private_sources": all_non_modules[target].get("dependencies", []),
+        "private_targets": target,
+        "private_path": path,
+        "private_is_container": all_non_modules[target].get("is_container", False),
+        "private_package_name": all_non_modules[target].get("license_package_name", ""),
+        "private_install_map": install_map,
+        "private_argument_file": intermediate_dir,
+        "meta_lic": meta_path  # Add meta_lic path for consistency with module targets
+    }
+
+    # Add the metadata entry to the list instead of a dictionary-style update
+    all_targets.append(target_metadata)
+    print(f"Updated target metadata for: {target}")
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
