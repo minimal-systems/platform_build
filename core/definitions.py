@@ -1061,6 +1061,39 @@ def license_metadata_dir(target, out_dir, generated_sources_dir="META/lic"):
 
 targets_missing_license_metadata = []
 
+def corresponding_license_metadata(targets, all_modules, all_targets):
+    """
+    Retrieve the license metadata files corresponding to the given targets.
+
+    Args:
+        targets (list of str): List of target names.
+        all_modules (dict of dict): Dictionary containing module attributes, where keys are module names and values are dictionaries of attributes.
+        all_targets (dict of dict): Dictionary containing target attributes, where keys are target names and values are dictionaries of attributes.
+
+    Returns:
+        list of str: List of license metadata paths corresponding to the given targets.
+        list of str: List of targets missing license metadata.
+    """
+
+    # Collect license metadata paths for each target, excluding "0p"
+    license_metadata_paths = []
+    for target in sorted(targets):
+        # Check for META_LIC in all_modules first
+        meta_lic = all_modules.get(target, {}).get("META_LIC")
+
+        # If not found in all_modules, check in all_targets
+        if not meta_lic:
+            meta_lic = all_targets.get(target, {}).get("META_LIC")
+
+        # If META_LIC is found, add to the list, otherwise add to missing license metadata list
+        if meta_lic:
+            license_metadata_paths.append(meta_lic)
+        else:
+            targets_missing_license_metadata.append(target)
+
+    # Filter out "0p" entries and return both results
+    return [lic for lic in license_metadata_paths if lic != "0p"], targets_missing_license_metadata
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
