@@ -1193,7 +1193,7 @@ def _license_metadata_rule(target, meta_lic, all_modules, all_targets, build_lic
     module_name = target
 
     # Prepare argument file path
-    argument_file = os.path.join(intermediates_dir, "PACKAGING", "notice", target, "arguments")
+    argument_file = os.path.join(out_dir, "intermediates", "PACKAGING", "notice", target, "arguments")
 
     # Prepare command arguments to dump into the file
     args_to_dump = [
