@@ -1301,7 +1301,7 @@ def non_module_license_metadata_rule(target, all_non_modules, all_targets, build
 
     Args:
         target (str): The non-module target for which the license metadata needs to be built.
-        all_non_modules (dict): Dictionary representing all non-module targets with their attributes.
+        all_non_modules (list): List representing all non-module targets with their attributes.
         all_targets (list): List of all targets with their attributes.
         build_license_metadata_cmd (str): Command to build license metadata.
         out_dir (str): The base output directory for the build.
@@ -1309,31 +1309,37 @@ def non_module_license_metadata_rule(target, all_non_modules, all_targets, build
     Returns:
         None: The function updates the `all_targets` list in-place.
     """
+    # Retrieve the specific non-module target dictionary from the list
+    non_module_target = next((nm for nm in all_non_modules if nm.get("name") == target), None)
+    if not non_module_target:
+        print(f"Non-module target '{target}' not found in all_non_modules list.")
+        return
+
     # Define the directory and metadata path
     dir_path = license_metadata_dir(target, out_dir)
     meta_path = os.path.join(dir_path, f"{os.path.basename(target)}.meta_lic")
 
     # Retrieve dependencies, notices, paths, and root mappings for the target
     deps = sorted([
-        f"{next((t for t in all_targets if t['name'] == dep.split(':')[0]), {}).get('meta_lic', '')}:{':'.join(dep.split(':')[1:])}"
-        for dep in all_non_modules[target].get("dependencies", [])
+        f"{next((t.get('meta_lic', '') for t in all_targets if t.get('name') == dep), '')}:{':'.join(dep.split(':')[1:])}"
+        for dep in non_module_target.get("dependencies", [])
         if dep
     ])
-    notices = sorted(all_non_modules[target].get("notices", []))
-    path = sorted(all_non_modules[target].get("path", []))
-    install_map = all_non_modules[target].get("root_mappings", "")
+    notices = sorted(non_module_target.get("notices", []))
+    path = sorted(non_module_target.get("path", []))
+    install_map = non_module_target.get("root_mappings", "")
 
     # Create the argument file directory
-    intermediate_dir = os.path.join(out_dir, "intermediates", "PACKAGING", "notice", os.path.basename(meta_path), "arguments")
+    intermediate_dir = os.path.join(out_dir, "intermediates", "packaging", "notice", os.path.basename(meta_path), "arguments")
     os.makedirs(os.path.dirname(intermediate_dir), exist_ok=True)
 
     # Create argument file content
     args_to_dump = [
-        f"-k {' '.join(sorted(all_non_modules[target].get('license_kinds', [])))}",
-        f"-c {' '.join(sorted(all_non_modules[target].get('license_conditions', [])))}",
+        f"-k {' '.join(sorted(non_module_target.get('license_kinds', [])))}",
+        f"-c {' '.join(sorted(non_module_target.get('license_conditions', [])))}",
         f"-n {' '.join(notices)}",
         f"-d {' '.join(deps)}",
-        f"-s {' '.join(all_non_modules[target].get('dependencies', []))}",
+        f"-s {' '.join(non_module_target.get('dependencies', []))}",
         f"-m {' '.join(install_map)}",
         f"-t {target}",
         f"-r {' '.join(path)}"
@@ -1345,32 +1351,31 @@ def non_module_license_metadata_rule(target, all_non_modules, all_targets, build
 
     # Construct the build command
     build_command = f"out_dir={out_dir} {build_license_metadata_cmd} -mt raw -mc unknown "
-    if all_non_modules[target].get("is_container", False):
+    if non_module_target.get("is_container", False):
         build_command += "--is_container "
     build_command += f"-r {' '.join(path)} "
     build_command += f"@{intermediate_dir} -o {meta_path}"
 
-    # Print the build command (for debugging purposes)
+    # Print the build command for debugging
     print(f"Executing: {build_command}")
 
-    # Prepare metadata to be added to the list
+    # Update all_targets with the metadata
     target_metadata = {
         "name": target,
-        "private_kinds": sorted(all_non_modules[target].get("license_kinds", [])),
-        "private_conditions": sorted(all_non_modules[target].get("license_conditions", [])),
+        "private_kinds": sorted(non_module_target.get("license_kinds", [])),
+        "private_conditions": sorted(non_module_target.get("license_conditions", [])),
         "private_notices": notices,
         "private_notice_deps": deps,
-        "private_sources": all_non_modules[target].get("dependencies", []),
+        "private_sources": non_module_target.get("dependencies", []),
         "private_targets": target,
         "private_path": path,
-        "private_is_container": all_non_modules[target].get("is_container", False),
-        "private_package_name": all_non_modules[target].get("license_package_name", ""),
+        "private_is_container": non_module_target.get("is_container", False),
+        "private_package_name": non_module_target.get("license_package_name", ""),
         "private_install_map": install_map,
-        "private_argument_file": intermediate_dir,
-        "meta_lic": meta_path  # Add meta_lic path for consistency with module targets
+        "private_argument_file": intermediate_dir
     }
 
-    # Add the metadata entry to the list instead of a dictionary-style update
+    # Add to all_targets list
     all_targets.append(target_metadata)
     print(f"Updated target metadata for: {target}")
 
