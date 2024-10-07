@@ -5,6 +5,8 @@ import importlib.util
 import sys
 from pathlib import Path
 import glob
+import subprocess
+from collections import defaultdict
 
 ##
 ## Common build system definitions.  Mostly standard
@@ -1124,28 +1126,164 @@ def declare_copy_target_license_metadata(target, sources, all_copied_targets, ou
         # Update the 'sources' field by adding the new sources and keeping them sorted and unique.
         target_entry["sources"] = sorted(set(target_entry["sources"] + filtered_sources))
 
-def license_metadata_rule(target, all_modules, all_targets):
+def _license_metadata_rule(target, meta_lic, all_modules, all_targets, build_license_metadata_cmd, intermediates_dir, out_dir):
+    """
+    Internal function to process license metadata rules for a given target and meta_lic.
+
+    Args:
+        target (str): The target for which the license metadata rule applies.
+        meta_lic (str): The specific meta license being processed.
+        all_modules (list of dict): List of dictionaries representing all modules with their attributes.
+        all_targets (list of dict): List of all targets with their attributes.
+        build_license_metadata_cmd (str): Command to build license metadata.
+        intermediates_dir (str): Directory path for intermediate files.
+        out_dir (str): The base output directory for the build.
+
+    Returns:
+        tuple: The output and error messages from the build command.
+    """
+    # Retrieve module dictionary for the given target from the list of modules
+    module = next((m for m in all_modules if m.get("name") == target), None)
+    if not module:
+        return None, f"Module '{target}' not found"
+
+    # Retrieve attributes from the module
+    notice_deps = module.get("notice_deps", [])
+    built = module.get("built", [])
+    installed = module.get("installed", [])
+    license_kinds = module.get("license_kinds", [])
+    license_conditions = module.get("license_conditions", [])
+    notices = module.get("notices", [])
+    license_package_name = module.get("license_package_name", "").strip()
+    is_container = module.get("is_container", False)
+    module_type = module.get("module_type", "")
+    module_class = module.get("module_class", "")
+    license_install_map = module.get("license_install_map", [])
+
+    # Retrieve sources for the notice_deps
+    sources = []
+    for dep in notice_deps:
+        dep_name = dep.split(":")[0]
+        dep_module = next((m for m in all_modules if m.get("name") == dep_name), None)
+        sources.extend(dep_module.get("installed", []) or dep_module.get("built", []) or [dep_name])
+
+    # Retrieve dependencies for the notice_deps
+    deps = []
+    for dep in notice_deps:
+        dep_name = dep.split(":")[0]
+        suffix = ":".join(dep.split(":")[1:])  # Extract suffix after colon
+        dep_module = next((m for m in all_modules if m.get("name") == dep_name), None)
+        dep_meta_lics = [
+            target_meta.get("meta_lic")
+            for target_meta in all_targets if target_meta.get("name") == dep_name
+        ]
+        # Add dependencies to the list
+        deps.extend([f"{file}:{suffix}" for file in dep_meta_lics if file])
+
+    # Prepare license_install_map entries
+    install_map = []
+    for item in sorted(license_install_map):
+        src, dest = item.split(":", 1)
+        src_module = next((m for m in all_modules if m.get("name") == src), None)
+        source_files = src_module.get("installed", []) or src_module.get("built", []) or [src]
+        install_map.extend([f"{file}:{dest}" for file in source_files])
+
+    # Prepare paths and other attributes
+    path = sorted(module.get("path", []))
+    module_name = target
+
+    # Prepare argument file path
+    argument_file = os.path.join(intermediates_dir, "PACKAGING", "notice", target, "arguments")
+
+    # Prepare command arguments to dump into the file
+    args_to_dump = [
+        f"-mn {module_name}" if module_name else "",  # Make module_name optional
+        f"-mt \"{module_type}\"" if module_type else "",  # Use quotes for module_type
+        f"-mc \"{module_class}\"" if module_class else "",  # Use quotes for module_class
+        f"-k \"{' '.join(sorted(license_kinds))}\"" if license_kinds else "",  # Join and quote license kinds
+        f"-c \"{' '.join(sorted(license_conditions))}\"" if license_conditions else "",  # Join and quote license conditions
+        f"-n \"{' '.join(sorted(notices))}\"" if notices else "",  # Join and quote notices
+        f"-d \"{','.join(sorted(deps))}\"" if deps else "",  # Join dependencies correctly
+        f"-s \"{','.join(sorted(sources))}\"" if sources else "",  # Join sources correctly
+        f"-m \"{','.join(sorted(install_map))}\"" if install_map else "",  # Join install map correctly
+        f"-t \"{' '.join(sorted(built))}\"" if built else "",  # Quote built targets
+        f"-i \"{' '.join(sorted(installed))}\"" if installed else "",  # Quote installed targets
+        f"-r \"{' '.join(sorted(path))}\"" if path else ""  # Quote paths
+    ]
+
+    # Remove empty arguments
+    args_to_dump = [arg for arg in args_to_dump if arg]
+
+    # Create directories and write arguments to the argument file
+    os.makedirs(os.path.dirname(argument_file), exist_ok=True)
+    with open(argument_file, 'w') as file:
+        file.write("\n".join(args_to_dump))
+
+    # Read the argument file and format arguments correctly
+    with open(argument_file, 'r') as file:
+        argument_content = " ".join(line.strip() for line in file if line.strip())
+
+    # Update all_targets with the metadata (as a dictionary entry)
+    all_targets.append({
+        "name": target,
+        "meta_lic": meta_lic,
+        "private_kinds": sorted(license_kinds),
+        "private_conditions": sorted(license_conditions),
+        "private_notices": sorted(notices),
+        "private_notice_deps": sorted(deps),
+        "private_sources": sorted(sources),
+        "private_targets": sorted(built),
+        "private_installed": sorted(installed),
+        "private_path": sorted(path),
+        "private_is_container": is_container,
+        "private_package_name": license_package_name,
+        "private_install_map": sorted(install_map),
+        "private_module_name": module_name,
+        "private_module_type": module_type,
+        "private_module_class": module_class,
+        "private_argument_file": argument_file
+    })
+
+    # Construct the build command with correctly formatted arguments
+    build_command = f"OUT_DIR={out_dir} {build_license_metadata_cmd} "
+    if is_container:
+        build_command += "--is_container "
+    build_command += f"-p '{license_package_name}' {argument_content} -o {meta_lic}"
+
+    try:
+        # Execute the build command and capture the output and error
+        result = subprocess.run(
+            build_command, shell=True, check=True, capture_output=True, text=True
+        )
+        print(f"Build Command Output:\n{result.stdout}")
+        return result.stdout, result.stderr
+    except subprocess.CalledProcessError as e:
+        # If the command fails, capture the error output and return it
+        print(f"Build Command Error:\n{e.stderr}")
+        return e.stdout, e.stderr
+
+def license_metadata_rule(target, all_modules, all_targets, build_license_metadata_cmd, intermediates_dir, out_dir):
     """
     License metadata build rule for the given target.
 
     Args:
         target (str): The target for which license metadata needs to be built.
-        all_modules (dict): Dictionary of all modules with their attributes.
-        all_targets (dict): Dictionary of all targets with their attributes.
+        all_modules (list of dict): List of dictionaries representing all modules with their attributes.
+        all_targets (list of dict): List of all targets with their attributes.
+        build_license_metadata_cmd (str): Command to build license metadata.
+        intermediates_dir (str): Directory path for intermediate files.
+        out_dir (str): The base output directory for the build.
 
     Returns:
-        None: The function updates the `all_targets` dictionary in-place.
+        None: The function updates the `all_targets` list in-place.
     """
     # Get the delayed meta_lic list for the target
-    delayed_meta_lics = all_modules.get(target, {}).get("delayed_meta_lic", [])
+    module = next((m for m in all_modules if m.get("name") == target), None)
+    delayed_meta_lics = module.get("delayed_meta_lic", []) if module else []
 
-    # Add or update the meta_lic information for each delayed_meta_lic in the target's attributes.
-    if target not in all_targets:
-        all_targets[target] = {}
-
-    # Store the last meta_lic for the given target, similar to how the Makefile uses $(call _license-metadata-rule).
+    # Call the _license_metadata_rule function for each delayed_meta_lic
     for meta_lic in delayed_meta_lics:
-        all_targets[target]["meta_lic"] = meta_lic  # Set or update the meta_lic for the target
+        _license_metadata_rule(target, meta_lic, all_modules, all_targets, build_license_metadata_cmd, intermediates_dir, out_dir)
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
