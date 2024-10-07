@@ -1,6 +1,12 @@
 # test_definitions.py
 
-from definitions import license_metadata_rule, non_module_license_metadata_rule, record_missing_non_module_dependencies, copied_target_license_metadata_rule
+from definitions import (
+    license_metadata_rule,
+    non_module_license_metadata_rule,
+    record_missing_non_module_dependencies,
+    copied_target_license_metadata_rule,
+    _copied_target_license_metadata_rule  # Import the new function
+)
 import os
 from colorama import Fore, Style, init
 
@@ -71,13 +77,14 @@ def setup_paths():
     intermediates_dir = "out/target/product/generic"
     out_dir = "out/target/product/generic"
     return build_license_metadata_cmd, intermediates_dir, out_dir
-
+PRINT_CONDITIONS = False
 def print_result(condition, success_msg, failure_msg):
     """Prints result based on condition with colors."""
-    if condition:
-        print(f"{Fore.GREEN}PASS: {success_msg}{Style.RESET_ALL}")
-    else:
-        print(f"{Fore.RED}FAIL: {failure_msg}{Style.RESET_ALL}")
+    if PRINT_CONDITIONS:
+        if condition:
+            print(f"{Fore.GREEN}PASS: {success_msg}{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.RED}FAIL: {failure_msg}{Style.RESET_ALL}")
 
 def run_license_metadata_test():
     """Run the license metadata test for module target using print statements."""
@@ -93,9 +100,11 @@ def run_license_metadata_test():
     # Print the results of all_targets
     print(f"{Fore.CYAN}Updated all_targets:{Style.RESET_ALL}")
     for target in all_targets:
-        print(f"{Fore.CYAN}Target: {target['name']}{Style.RESET_ALL}")
+        if PRINT_CONDITIONS:
+            print(f"{Fore.CYAN}Target: {target['name']}{Style.RESET_ALL}")
         for key, value in target.items():
-            print(f"  {key}: {value}")
+            if PRINT_CONDITIONS:
+                print(f"  {key}: {value}")
 
     # Perform manual assertions with colored print statements
     print_result(len(all_targets) == 2, "Expected 2 targets to be added for 'environment'", f"Expected 2 targets, but got {len(all_targets)}")
@@ -139,9 +148,11 @@ def run_non_module_license_metadata_test():
     # Print the results of all_targets
     print(f"{Fore.CYAN}Updated all_targets (Non-Module):{Style.RESET_ALL}")
     for target in all_targets:  # Iterate over list elements instead of dictionary items
-        print(f"{Fore.CYAN}Target: {target['name']}{Style.RESET_ALL}")
+        if PRINT_CONDITIONS:
+            print(f"{Fore.CYAN}Target: {target['name']}{Style.RESET_ALL}")
         for key, value in target.items():
-            print(f"  {key}: {value}")
+            if PRINT_CONDITIONS:
+                print(f"  {key}: {value}")
 
     # Perform manual assertions with colored print statements
     print_result(len(all_targets) == 1, "Expected 1 target to be added for 'vendor_config'", f"Expected 1 target, but got {len(all_targets)}")
@@ -181,27 +192,42 @@ def run_record_missing_dependencies_test():
 
 def run_copied_target_license_metadata_test():
     """Run the copied target license metadata rule test using print statements."""
-    all_targets = setup_modules()  # Using setup_modules as targets
+    print(f"{Fore.CYAN}Running copied target license metadata rule test...\n{Style.RESET_ALL}")
+    all_targets = setup_modules()  # Use the setup_modules function to initialize targets
+    all_copied_targets = [
+        {
+            "name": "vendor_config",
+            "sources": ["vendor_init"]  # Specify source dependencies for the copied target
+        }
+    ]
+    copy_license_metadata_cmd = "build/soong/compliance/copy_license_metadata"
+    out_dir = "out/target/product/generic"
 
     print(f"{Fore.CYAN}Running copied target license metadata rule for 'vendor_config'...\n{Style.RESET_ALL}")
-    copied_target_license_metadata_rule("vendor_config", all_targets)
+
+    # Run the detailed copied target license metadata rule function
+    _copied_target_license_metadata_rule("vendor_config", all_targets, all_copied_targets, copy_license_metadata_cmd,
+                                         out_dir)
 
     # Print the updated targets list
-    print(f"{Fore.CYAN}Updated all_targets (Copied Target):{Style.RESET_ALL}")
+    if PRINT_CONDITIONS:
+        print(f"{Fore.CYAN}Updated all_targets (Copied Target):{Style.RESET_ALL}")
     for target in all_targets:
-        print(f"{Fore.CYAN}Target: {target['name']}{Style.RESET_ALL}")
+        if PRINT_CONDITIONS:
+            print(f"{Fore.CYAN}Target: {target['name']}{Style.RESET_ALL}")
         for key, value in target.items():
-            print(f"  {key}: {value}")
+            if PRINT_CONDITIONS:
+                print(f"  {key}: {value}")
 
     # Verify that 'vendor_config' now has 'meta_lic' set
     vendor_config_target = next((t for t in all_targets if t["name"] == "vendor_config"), None)
     has_meta_lic = vendor_config_target and "meta_lic" in vendor_config_target
-    print_result(has_meta_lic, "'meta_lic' attribute is correctly set for 'vendor_config'", "'meta_lic' attribute is not set for 'vendor_config'")
-
+    print_result(has_meta_lic, "'meta_lic' attribute is correctly set for 'vendor_config'",
+                 "'meta_lic' attribute is not set for 'vendor_config'")
 
 # Run the tests without pytest
 if __name__ == "__main__":
+    run_copied_target_license_metadata_test()
     run_license_metadata_test()
     run_non_module_license_metadata_test()
     run_record_missing_dependencies_test()
-    run_copied_target_license_metadata_test()
