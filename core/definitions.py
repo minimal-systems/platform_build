@@ -871,6 +871,7 @@ def find_files_in_subdirs(base_dir, pattern, subdirs):
 # subdirs = ["dir1", "dir2"]
 # print(find_files_in_subdirs(base_dir, pattern, subdirs))
 
+
 ###########################################################
 ## Scan through each directory of $(1) looking for files
 ## that match $(2) using $(wildcard).  Useful for seeing if
@@ -878,6 +879,7 @@ def find_files_in_subdirs(base_dir, pattern, subdirs):
 ## a particular file.  Returns the first match found,
 ## starting furthest from the root.
 ###########################################################
+
 
 def find_parent_file(start_dir, filename_pattern):
     """
@@ -923,12 +925,14 @@ def find_parent_file(start_dir, filename_pattern):
     # Return None if no match is found
     return None
 
+
 ###########################################################
 ## Find test data in a form required by local_test_data.
 ## $(1): the base dir, relative to the root of the source tree.
 ## $(2): the file name pattern to be passed to find as "-name"
 ## $(3): a list of subdirs of the base dir
 ###########################################################
+
 
 def find_test_data_in_subdirs(base_dir, filename_pattern, subdirs):
     """
@@ -967,6 +971,7 @@ def find_test_data_in_subdirs(base_dir, filename_pattern, subdirs):
 
     return sorted(result_files)
 
+
 def add_dependency(target, dependency):
     """
     Define a dependency relationship between a target and a dependency.
@@ -986,6 +991,7 @@ def add_dependency(target, dependency):
     """
     return target, dependency
 
+
 def reverse_list(lst):
     """
     Reverse the order of a list.
@@ -1004,6 +1010,7 @@ def reverse_list(lst):
     if not lst:
         return []
     return reverse_list(lst[1:]) + [lst[0]]
+
 
 def fix_notice_deps(all_modules, all_modules_attrs):
     """
@@ -1063,6 +1070,7 @@ def license_metadata_dir(target, out_dir, generated_sources_dir="META/lic"):
 
 targets_missing_license_metadata = []
 
+
 def corresponding_license_metadata(targets, all_modules, all_targets):
     """
     Retrieve the license metadata files corresponding to the given targets.
@@ -1096,6 +1104,7 @@ def corresponding_license_metadata(targets, all_modules, all_targets):
     # Filter out "0p" entries and return both results
     return [lic for lic in license_metadata_paths if lic != "0p"], targets_missing_license_metadata
 
+
 def declare_copy_target_license_metadata(target, sources, all_copied_targets, out_dir):
     """
     Record a target copied from another source(s) that will need license metadata.
@@ -1125,6 +1134,7 @@ def declare_copy_target_license_metadata(target, sources, all_copied_targets, ou
 
         # Update the 'sources' field by adding the new sources and keeping them sorted and unique.
         target_entry["sources"] = sorted(set(target_entry["sources"] + filtered_sources))
+
 
 def _license_metadata_rule(target, meta_lic, all_modules, all_targets, build_license_metadata_cmd, intermediates_dir, out_dir):
     """
@@ -1363,6 +1373,40 @@ def non_module_license_metadata_rule(target, all_non_modules, all_targets, build
     # Add the metadata entry to the list instead of a dictionary-style update
     all_targets.append(target_metadata)
     print(f"Updated target metadata for: {target}")
+
+
+def record_missing_non_module_dependencies(target, all_non_modules, all_targets, missing_dependencies):
+    """
+    Record missing dependencies for a non-module target.
+
+    Args:
+        target (str): The non-module target for which the dependencies need to be checked.
+        all_non_modules (list): List of all non-module targets with their attributes.
+        all_targets (list): List of all targets with their attributes.
+        missing_dependencies (list): List to accumulate non-modules without license metadata.
+
+    Returns:
+        None: The function updates the `missing_dependencies` list in-place.
+    """
+    # Ensure all_non_modules is a list of dictionaries
+    if isinstance(all_non_modules, list) and all(isinstance(nm, dict) for nm in all_non_modules):
+        # Retrieve the dictionary entry for the given non-module target from the list
+        non_module_target = next((nm for nm in all_non_modules if nm.get("name") == target), {})
+    else:
+        print(f"Error: all_non_modules is not a list of dictionaries. Received: {all_non_modules}")
+        return
+
+    # Get dependencies for the non-module target
+    dependencies = non_module_target.get("dependencies", [])
+
+    # Iterate over each dependency to check if it has metadata
+    for dep in dependencies:
+        # Check if the dependency exists in all_targets and has license metadata
+        dep_target = next((t for t in all_targets if t.get("name") == dep), None)
+        if dep_target is None or "meta_lic" not in dep_target:
+            # Record the dependency if it does not have license metadata
+            missing_dependencies.append(dep)
+
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
