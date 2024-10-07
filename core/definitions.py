@@ -1094,6 +1094,36 @@ def corresponding_license_metadata(targets, all_modules, all_targets):
     # Filter out "0p" entries and return both results
     return [lic for lic in license_metadata_paths if lic != "0p"], targets_missing_license_metadata
 
+def declare_copy_target_license_metadata(target, sources, all_copied_targets, out_dir):
+    """
+    Record a target copied from another source(s) that will need license metadata.
+
+    Args:
+        target (str): The target that will need license metadata.
+        sources (list of str): List of source paths for the target.
+        all_copied_targets (list): List of dictionaries representing copied targets that need license metadata.
+        out_dir (str): The base output directory (similar to `OUT_DIR` in the Makefile).
+
+    Returns:
+        None: Updates the `all_copied_targets` list in-place.
+    """
+    # Filter sources to only include those within the output directory.
+    filtered_sources = [source for source in sources if source.startswith(out_dir)]
+
+    # If there are sources within the output directory, proceed to record the target.
+    if filtered_sources:
+        # Strip whitespace from the target.
+        target = target.strip()
+
+        # Find existing target in the list or create a new dictionary if it doesn't exist.
+        target_entry = next((item for item in all_copied_targets if item.get("target") == target), None)
+        if not target_entry:
+            target_entry = {"target": target, "sources": []}
+            all_copied_targets.append(target_entry)
+
+        # Update the 'sources' field by adding the new sources and keeping them sorted and unique.
+        target_entry["sources"] = sorted(set(target_entry["sources"] + filtered_sources))
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
