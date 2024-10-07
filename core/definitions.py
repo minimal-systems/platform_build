@@ -1265,11 +1265,9 @@ def _license_metadata_rule(target, meta_lic, all_modules, all_targets, build_lic
         result = subprocess.run(
             build_command, shell=True, check=True, capture_output=True, text=True
         )
-        print(f"Build Command Output:\n{result.stdout}")
         return result.stdout, result.stderr
     except subprocess.CalledProcessError as e:
         # If the command fails, capture the error output and return it
-        print(f"Build Command Error:\n{e.stderr}")
         return e.stdout, e.stderr
 
 def license_metadata_rule(target, all_modules, all_targets, build_license_metadata_cmd, intermediates_dir, out_dir):
@@ -1411,6 +1409,32 @@ def record_missing_non_module_dependencies(target, all_non_modules, all_targets,
         if dep_target is None or "meta_lic" not in dep_target:
             # Record the dependency if it does not have license metadata
             missing_dependencies.append(dep)
+
+
+def copied_target_license_metadata_rule(target_name, all_targets):
+    """
+    Check if the given target's `meta_lic` attribute is defined. If not, add `meta_lic` metadata directly.
+
+    Args:
+        target_name (str): The name of the target to check.
+        all_targets (list): List of target dictionaries, each representing a target with attributes.
+
+    Returns:
+        None: Updates the target list in place if necessary.
+    """
+    # Find the target in the list of all targets
+    target = next((t for t in all_targets if t.get("name") == target_name), None)
+    if not target:
+        print(f"Target '{target_name}' not found in all_targets.")
+        return
+
+    # Check if the target has a 'meta_lic' attribute
+    if not target.get("meta_lic"):
+        # Add 'meta_lic' metadata if it's missing
+        target["meta_lic"] = f"{target_name}.meta_lic"
+        print(f"Added 'meta_lic' attribute to target '{target_name}'.")
+    else:
+        print(f"'meta_lic' is already defined for target '{target_name}', no action required.")
 
 
 def get_host_2nd_arch():

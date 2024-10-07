@@ -1,6 +1,6 @@
 # test_definitions.py
 
-from definitions import license_metadata_rule, non_module_license_metadata_rule, record_missing_non_module_dependencies
+from definitions import license_metadata_rule, non_module_license_metadata_rule, record_missing_non_module_dependencies, copied_target_license_metadata_rule
 import os
 from colorama import Fore, Style, init
 
@@ -179,8 +179,29 @@ def run_record_missing_dependencies_test():
     print(f"\n{Fore.CYAN}All assertions completed for record_missing_non_module_dependencies!{Style.RESET_ALL}")
 
 
+def run_copied_target_license_metadata_test():
+    """Run the copied target license metadata rule test using print statements."""
+    all_targets = setup_modules()  # Using setup_modules as targets
+
+    print(f"{Fore.CYAN}Running copied target license metadata rule for 'vendor_config'...\n{Style.RESET_ALL}")
+    copied_target_license_metadata_rule("vendor_config", all_targets)
+
+    # Print the updated targets list
+    print(f"{Fore.CYAN}Updated all_targets (Copied Target):{Style.RESET_ALL}")
+    for target in all_targets:
+        print(f"{Fore.CYAN}Target: {target['name']}{Style.RESET_ALL}")
+        for key, value in target.items():
+            print(f"  {key}: {value}")
+
+    # Verify that 'vendor_config' now has 'meta_lic' set
+    vendor_config_target = next((t for t in all_targets if t["name"] == "vendor_config"), None)
+    has_meta_lic = vendor_config_target and "meta_lic" in vendor_config_target
+    print_result(has_meta_lic, "'meta_lic' attribute is correctly set for 'vendor_config'", "'meta_lic' attribute is not set for 'vendor_config'")
+
+
 # Run the tests without pytest
 if __name__ == "__main__":
     run_license_metadata_test()
     run_non_module_license_metadata_test()
     run_record_missing_dependencies_test()
+    run_copied_target_license_metadata_test()
