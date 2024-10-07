@@ -1005,7 +1005,7 @@ def reverse_list(lst):
 
 def fix_notice_deps(all_modules, all_modules_attrs):
     """
-    Fix notice dependencies by replacing unadorned module names with adorned module names.
+    Replace unadorned module names in the 'NOTICE_DEPS' attribute with their adorned versions.
 
     Args:
         all_modules (list of str): List of all module names.
@@ -1013,58 +1013,33 @@ def fix_notice_deps(all_modules, all_modules_attrs):
                                           and the inner keys include 'NOTICE_DEPS' and 'PATH' attributes.
 
     Returns:
-        dict of dict: Updated module attributes with fixed NOTICE_DEPS.
-
-    Example:
-        all_modules = ["module1", "module2", "module1_32", "module1_64", "host_cross_module1"]
-        all_modules_attrs = {
-            "module1": {"NOTICE_DEPS": ["module2", "missing_module"], "PATH": "/path/to/module1"},
-            "module2": {"NOTICE_DEPS": [], "PATH": "/path/to/module2"},
-            "module1_32": {"NOTICE_DEPS": [], "PATH": "/path/to/module1_32"},
-            "module1_64": {"NOTICE_DEPS": [], "PATH": "/path/to/module1_64"},
-            "host_cross_module1": {"NOTICE_DEPS": [], "PATH": "/path/to/host_cross_module1"}
-        }
-        result = fix_notice_deps(all_modules, all_modules_attrs)
-        print(result)
+        dict of dict: Updated module attributes with corrected 'NOTICE_DEPS'.
     """
-    # Step 1: Collect all module references from NOTICE_DEPS attributes
-    all_module_refs = set()
-    for module in all_modules:
-        notice_deps = all_modules_attrs.get(module, {}).get("NOTICE_DEPS", [])
-        for dep in notice_deps:
-            dep_name = dep.split(":")[0]  # Extract the unadorned module name
-            all_module_refs.add(dep_name)
+    # Collect all unique module references from 'NOTICE_DEPS' attributes.
+    all_module_refs = {
+        dep.split(":")[0] for m in all_modules for dep in all_modules_attrs.get(m, {}).get("NOTICE_DEPS", [])
+    }
 
-    # Step 2: Create a lookup dictionary for adorned module names based on unadorned references
+    # Build a lookup dictionary for adorned module names.
     lookup = {}
-    for ref in all_module_refs:
-        if all_modules_attrs.get(ref, {}).get("PATH"):
-            # If the reference has a defined path, use the unadorned name itself
+    for ref in sorted(all_module_refs):
+        if ref in all_modules_attrs and "PATH" in all_modules_attrs[ref]:
             lookup[ref] = [ref]
         else:
-            # Otherwise, search for adorned versions in all_modules
-            adorned_versions = [
-                f"{ref}_32", f"{ref}_64", f"host_cross_{ref}", f"host_cross_{ref}_32", f"host_cross_{ref}_64"
-            ]
-            # Filter to find the matching adorned modules
+            # Find possible adorned versions of the module.
+            adorned_versions = [f"{ref}_32", f"{ref}_64", f"host_cross_{ref}", f"host_cross_{ref}_32", f"host_cross_{ref}_64"]
             lookup[ref] = sorted([mod for mod in all_modules if mod in adorned_versions])
 
-    # Step 3: Update NOTICE_DEPS for each module using the lookup dictionary
+    # Update 'NOTICE_DEPS' for each module using the lookup dictionary.
     for module in all_modules:
         notice_deps = all_modules_attrs.get(module, {}).get("NOTICE_DEPS", [])
-        updated_notice_deps = []
-
+        updated_deps = []
         for dep in notice_deps:
             dep_name, dep_suffix = dep.split(":", 1) if ":" in dep else (dep, "")
-            # Replace unadorned module names with all adorned names from the lookup
-            if dep_name in lookup:
-                adorned_deps = [f"{adorned_name}:{dep_suffix}" for adorned_name in lookup[dep_name]]
-                updated_notice_deps.extend(adorned_deps)
-            else:
-                updated_notice_deps.append(dep)  # Keep the dependency as is if not in lookup
+            adorned_names = lookup.get(dep_name, [dep_name])
+            updated_deps.extend([f"{name}:{dep_suffix}" for name in adorned_names])
 
-        # Sort and update the NOTICE_DEPS attribute
-        all_modules_attrs[module]["NOTICE_DEPS"] = sorted(updated_notice_deps)
+        all_modules_attrs[module]["NOTICE_DEPS"] = sorted(updated_deps)
 
     return all_modules_attrs
 
