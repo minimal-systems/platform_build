@@ -1043,6 +1043,24 @@ def fix_notice_deps(all_modules, all_modules_attrs):
 
     return all_modules_attrs
 
+def license_metadata_dir(target, out_dir, generated_sources_dir="META/lic"):
+    """
+    Generate the target directory for license metadata files.
+
+    Args:
+        target (str): The target for which to generate the license metadata directory.
+        out_dir (str): The base output directory (equivalent to `PRODUCT_OUT` in Makefile).
+        generated_sources_dir (str): The base directory for generated sources. Default is "META/lic".
+
+    Returns:
+        str: Path to the license metadata directory.
+    """
+    # Filter out paths that start with `out_dir` and construct the directory path.
+    relative_target = target.replace(out_dir, "").lstrip("/")
+    return f"{out_dir}/{generated_sources_dir}/{relative_target}"
+
+targets_missing_license_metadata = []
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
