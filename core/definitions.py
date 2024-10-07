@@ -1124,6 +1124,29 @@ def declare_copy_target_license_metadata(target, sources, all_copied_targets, ou
         # Update the 'sources' field by adding the new sources and keeping them sorted and unique.
         target_entry["sources"] = sorted(set(target_entry["sources"] + filtered_sources))
 
+def license_metadata_rule(target, all_modules, all_targets):
+    """
+    License metadata build rule for the given target.
+
+    Args:
+        target (str): The target for which license metadata needs to be built.
+        all_modules (dict): Dictionary of all modules with their attributes.
+        all_targets (dict): Dictionary of all targets with their attributes.
+
+    Returns:
+        None: The function updates the `all_targets` dictionary in-place.
+    """
+    # Get the delayed meta_lic list for the target
+    delayed_meta_lics = all_modules.get(target, {}).get("delayed_meta_lic", [])
+
+    # Add or update the meta_lic information for each delayed_meta_lic in the target's attributes.
+    if target not in all_targets:
+        all_targets[target] = {}
+
+    # Store the last meta_lic for the given target, similar to how the Makefile uses $(call _license-metadata-rule).
+    for meta_lic in delayed_meta_lics:
+        all_targets[target]["meta_lic"] = meta_lic  # Set or update the meta_lic for the target
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
