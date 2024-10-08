@@ -2131,6 +2131,46 @@ def declare_container_license_deps(target, dependencies, root_mappings, all_non_
     print(f"Declared container license dependencies for non-module target: {target_name}")
 
 
+def report_missing_licenses_rule(non_modules_without_metadata, targets_missing_metadata, product_copy_files, product_out_dir):
+    """
+    Report targets and copied files with no license metadata.
+
+    Args:
+        non_modules_without_metadata (list): List of non-module targets without license metadata.
+        targets_missing_metadata (list): List of targets missing license metadata.
+        product_copy_files (list): List of product copy files, where each element is a tuple (src_path, dest_path).
+        product_out_dir (str): Base output directory for product files.
+
+    Returns:
+        None: Prints a report of targets and copied files without license metadata.
+    """
+    # Combine non-modules and targets missing metadata into a single set
+    private_non_modules = sorted(set(non_modules_without_metadata + targets_missing_metadata))
+
+    # Create a list of copied files missing metadata based on private_non_modules
+    private_copied_files = sorted(
+        product_out_dir + "/" + dest.lstrip("/")
+        for src, dest in product_copy_files
+        if (product_out_dir + "/" + dest.lstrip("/")) in private_non_modules
+    )
+
+    # Report the number of targets without license metadata
+    print(f"Reporting {len(private_non_modules)} targets without license metadata")
+
+    # Report each non-module without metadata
+    for target in private_non_modules:
+        if not os.path.islink(target):  # Skip symbolic links
+            print(f"No license metadata for {target}", file=sys.stderr)
+
+    # Report each copied file without metadata
+    for target in private_copied_files:
+        if not os.path.islink(target):  # Skip symbolic links
+            print(f"No license metadata for copied file {target}", file=sys.stderr)
+
+    # Print summary of missing metadata
+    print(f"{len(private_non_modules)} targets missing license metadata", file=sys.stderr)
+
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
