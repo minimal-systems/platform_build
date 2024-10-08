@@ -1806,6 +1806,54 @@ def _copied_target_license_metadata_rule(target_name, all_targets,
     })
     print(f"Updated target metadata for copied target: {target_name}")
 
+def declare_license_metadata(
+        target, license_kinds, license_conditions, notices, package_name, project_path, all_non_modules, all_targets, out_dir):
+    """
+    Declare the license metadata for a non-module target.
+
+    Args:
+        target (str): The non-module target for which the license metadata is being declared.
+        license_kinds (str): License kinds (e.g., 'SPDX-license-identifier-Apache-2.0').
+        license_conditions (str): License conditions (e.g., 'notice', 'by_exception_only').
+        notices (str): License text filenames (notices).
+        package_name (str): The package name associated with the license metadata.
+        project_path (str): The project path associated with the target.
+        all_non_modules (dict): Dictionary representing all non-module attributes.
+        all_targets (dict): Dictionary representing all target attributes.
+        out_dir (str): The base output directory for the build.
+
+    Returns:
+        None: Updates the dictionaries `all_non_modules` and `all_targets` in place.
+    """
+    # Strip and normalize the target name, replacing '//' with '/'
+    target_name = target.strip().replace("//", "/")
+
+    # Initialize the non-module target if not present
+    if target_name not in all_non_modules:
+        all_non_modules[target_name] = {}
+
+    # Add the target to the list of non-modules
+    all_non_modules.setdefault('all_non_modules', set()).add(target_name)
+
+    # Define the path for license metadata
+    meta_lic_dir = f"{out_dir}/META/lic/{target_name}"
+    meta_lic_path = f"{meta_lic_dir}/{target_name}.meta_lic"
+
+    # Store the META_LIC path in `all_targets`
+    if target_name not in all_targets:
+        all_targets[target_name] = {}
+
+    all_targets[target_name]["META_LIC"] = meta_lic_path
+
+    # Store the license-related metadata in `all_non_modules`
+    all_non_modules[target_name]["license_kinds"] = license_kinds.strip().split()
+    all_non_modules[target_name]["license_conditions"] = license_conditions.strip().split()
+    all_non_modules[target_name]["notices"] = notices.strip().split()
+    all_non_modules[target_name]["license_package_name"] = package_name.strip()
+    all_non_modules[target_name]["path"] = project_path.strip()
+
+    print(f"Declared license metadata for non-module target: {target_name}")
+
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
