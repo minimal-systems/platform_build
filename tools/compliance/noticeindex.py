@@ -1,136 +1,145 @@
 # noticeindex.py
 
-import hashlib
+from graph import LicenseGraph, TargetNode
 import os
+import hashlib
 import re
 from collections import defaultdict
-from graph import LicenseGraph
-
-
-# Placeholder for projectmetadata module and classes
-class ProjectMetadataIndex:
-    """Dummy implementation for indexing project metadata."""
-    def __init__(self, root_fs):
-        self.root_fs = root_fs
-
-    def metadata_for_projects(self, *projects):
-        return ["project1_metadata", "project2_metadata"]
-
-    def all_metadata_files(self):
-        return ["metadata_file1", "metadata_file2"]
 
 class NoticeIndex:
-    """
-    NoticeIndex transforms license metadata into license text hashes, library
-    names, and install paths, indexing them for fast lookup and iteration.
+    """Transforms license metadata into an indexed structure."""
 
-    Attributes:
-        lg (LicenseGraph): License graph to which the index applies.
-        pmix (ProjectMetadataIndex): Indexes project metadata.
-        rs (ResolutionSet): Set of resolutions upon which the index is based.
-        shipped (TargetNodeSet): Set of target nodes shipped directly or as derivative works.
-        root_fs (FileSystem): Root file system to read the files.
-        hash (dict): Maps license text filenames to content hashes.
-        text (dict): Maps content hashes to content.
-        hash_lib_install (dict): Maps hashes to libraries and their install paths.
-        install_hash_lib (dict): Maps install paths to libraries and their hashes.
-        lib_hash (dict): Maps libraries to hashes.
-        target_hashes (dict): Maps target nodes to hashes.
-        project_name (dict): Maps project directory names to project name text.
-        files (list): List of all files accessed during indexing.
-    """
-    licenses_path_regexp = re.compile(r'licen[cs]es?/')
+    licenses_path_regexp = re.compile(r"licen[cs]es?/")
 
-    def __init__(self, lg, root_fs, rs=None):
+    def __init__(self, root_dir, lg, rs):
         self.lg = lg
-        self.pmix = ProjectMetadataIndex(root_fs)
-        self.rs = rs or self.resolve_notices(lg)
-        self.shipped = self.shipped_nodes(lg)
-        self.root_fs = root_fs
-        self.hash = {}
-        self.text = {}
-        self.hash_lib_install = defaultdict(lambda: defaultdict(set))
-        self.install_hash_lib = defaultdict(lambda: defaultdict(set))
-        self.lib_hash = defaultdict(set)
-        self.target_hashes = defaultdict(set)
-        self.project_name = {}
-        self.files = []
+        self.rs = rs if rs else self.resolve_notices(lg)
+        self.root_dir = root_dir
 
-    def add_text(self, file):
+        # Initialize all mappings and variables
+        self.hash = {}  # Maps license text filenames to content hashes
+        self.text = {}  # Maps content hashes to content
+        self.hash_lib_install = defaultdict(lambda: defaultdict(set))  # Maps hashes to libraries to install paths
+        self.install_hash_lib = defaultdict(lambda: defaultdict(set))  # Maps install paths to libraries to hashes
+        self.lib_hash = defaultdict(set)  # Maps libraries to hashes
+        self.target_hashes = defaultdict(set)  # Maps target nodes to hashes
+        self.project_name = {}  # Maps project directory names to project name text
+        self.files = []  # List of all files accessed during indexing
+
+        # Ensure shipped nodes are set in the LicenseGraph
+        if not self.lg.shipped:
+            self.lg.set_shipped_nodes(self.get_shipped_nodes())
+
+        # Begin indexing license texts
+        self.index_license_texts()
+
+    def index_license_texts(self):
+        """Index all license texts for the LicenseGraph."""
+        def index_node(tn):
+            """Add all license texts for the target node to the index."""
+            if tn in self.target_hashes:
+                return self.target_hashes[tn]
+            hashes = set()
+            for text in tn.license_texts():
+                filename = text.split(":", 1)[0]
+                if filename not in self.hash:
+                    self.add_text(filename)
+                h = self.hash[filename]
+                hashes.add(h)
+            self.target_hashes[tn] = hashes
+            return hashes
+
+        for tn in self.lg.shipped:
+            hashes = index_node(tn)
+            install_paths = self.get_install_paths(tn)
+            self.link_node(tn, hashes, install_paths)
+
+    def add_text(self, filename):
         """Reads and indexes the content of a license text file."""
-        with open(file, 'rb') as f:
-            text = f.read()
-            hash_value = hashlib.md5(text).hexdigest()
-            self.hash[file] = hash_value
-            self.text[hash_value] = text
-            self.files.append(file)
+        filepath = os.path.join(self.root_dir, filename)
+        try:
+            with open(filepath, 'rb') as f:
+                content = f.read()
+                h = hashlib.md5(content).hexdigest()
+                self.hash[filename] = h
+                self.text[h] = content
+                self.files.append(filename)
+        except FileNotFoundError:
+            print(f"File not found: {filepath}")
 
-    def index_license_texts(self, tn):
-        """Adds all license texts for the given target node to the index."""
-        if tn in self.target_hashes:
-            return self.target_hashes[tn]
-
-        hashes = set()
-        for text in tn.license_texts():
-            fname = text.split(":")[0]
-            if fname not in self.hash:
-                self.add_text(fname)
-
-            hash_value = self.hash[fname]
-            hashes.add(hash_value)
-
-        self.target_hashes[tn] = hashes
-        return hashes
-
-    def link(self, tn, hashes, install_paths):
-        """Links license hashes, libraries, and install paths."""
+    def link_node(self, tn, hashes, install_paths):
+        """Link the target node to the indexed hashes and install paths."""
         for h in hashes:
             lib_name = self.get_lib_name(tn, h)
             self.lib_hash[lib_name].add(h)
-
             for install_path in install_paths:
                 self.install_hash_lib[install_path][h].add(lib_name)
                 self.hash_lib_install[h][lib_name].add(install_path)
 
     def get_lib_name(self, tn, h):
-        """Returns the name of the library associated with a given license text hash."""
-        for text in tn.license_texts():
-            fname, pname = (text.split(":", 1) if ":" in text else (text, ""))
-            if self.hash.get(fname) == h:
-                return pname or self.project_name.get(tn)
+        """Derives a library name for the given target node and hash."""
+        return f"lib_{h}"
 
-        return self.project_name.get(tn, "unknown_lib")
+    def get_install_paths(self, tn):
+        """Get the install paths for the given target node."""
+        return tn.installed() or tn.built()
+
+    def get_shipped_nodes(self):
+        """Mock method to get shipped nodes (can be replaced with actual implementation)."""
+        return set(self.lg.targets.values())
+
+    def hashes(self):
+        """Returns a sorted list of all hashes."""
+        return sorted(self.text.keys())
+
+    def hash_libs(self, h):
+        """Returns the libraries using the license text hashed as `h`."""
+        return sorted(self.hash_lib_install[h].keys())
+
+    def hash_lib_installs(self, h, lib_name):
+        """Returns the install paths for a given hash and library."""
+        return sorted(self.hash_lib_install[h][lib_name])
+
+    def install_hashes(self, install_path):
+        """Returns the hashes associated with an install path."""
+        return sorted(self.install_hash_lib[install_path].keys())
+
+    def install_hash_libs(self, install_path, h):
+        """Returns the libraries associated with an install path and hash."""
+        return sorted(self.install_hash_lib[install_path][h])
+
+    def libraries(self):
+        """Returns a sorted list of library names."""
+        return sorted(self.lib_hash.keys())
+
+    def install_paths(self):
+        """Returns a sorted list of install paths."""
+        return sorted(self.install_hash_lib.keys())
+
+    def input_files(self):
+        """Returns a sorted list of all files read during indexing."""
+        return sorted(self.files)
 
     def resolve_notices(self, lg):
-        """Dummy function to resolve notices (placeholder)."""
-        return {}
+        """Mock function for resolving notices (can be replaced with actual implementation)."""
+        return None
 
-    def shipped_nodes(self, lg):
-        """Dummy function to get shipped nodes (placeholder)."""
-        return set()
+# Example usage with graph.py integration
+if __name__ == "__main__":
+    # Create some mock TargetNodes with license texts and paths
+    node1 = TargetNode("node1", {"license_texts": ["LICENSE:libA"], "installed": ["install/path/libA"]})
+    node2 = TargetNode("node2", {"license_texts": ["LICENSE:libB"], "installed": ["install/path/libB"]})
 
-
-class ResolutionSet:
-    """Dummy ResolutionSet for demonstration purposes."""
-    def __init__(self):
-        pass
-
-class TargetNodeSet:
-    """Dummy TargetNodeSet for demonstration purposes."""
-    def __init__(self):
-        pass
-
-class TargetNode:
-    """Dummy TargetNode representing nodes in a LicenseGraph."""
-    def license_texts(self):
-        return ["file1:LibraryA", "file2:LibraryB"]
-
-# Example usage
-if __name__ == '__main__':
-    # Demonstrate the usage of NoticeIndex with dummy data
+    # Create a LicenseGraph and add nodes to it
     lg = LicenseGraph()
-    ni = NoticeIndex(lg, root_fs=None)
-    tn = TargetNode()
-    hashes = ni.index_license_texts(tn)
-    ni.link(tn, hashes, ["install/path/libA", "install/path/libB"])
-    print("Libraries:", ni.lib_hash)
+    lg.add_target(node1)
+    lg.add_target(node2)
+    lg.set_shipped_nodes([node1, node2])
+
+    rs = None  # Assuming ResolutionSet is not used for this example
+
+    # Create a NoticeIndex with the graph and print results
+    ni = NoticeIndex(root_dir="", lg=lg, rs=rs)
+    print(f"Hashes: {list(ni.hashes())}")
+    for h in ni.hashes():
+        print(f"Hash: {h}, Libraries: {ni.hash_libs(h)}, Install Paths: {ni.hash_lib_installs(h, f'lib_{h}')}")

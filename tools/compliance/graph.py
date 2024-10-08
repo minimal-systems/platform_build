@@ -18,6 +18,7 @@ class LicenseGraph:
         self.once_top_down = threading.Lock()  # Ensures top-down resolve only happens once
         self.shipped_nodes = None  # Caches shipped nodes result
         self.mu = threading.Lock()  # Lock for guarding concurrent updates
+        self.shipped = set()  # Initialize shipped attribute as an empty set
 
     def edges(self):
         """Returns the list of edges in the graph (unordered)."""
@@ -44,6 +45,10 @@ class LicenseGraph:
     def get_target(self, target_name):
         """Returns the TargetNode associated with the given target name."""
         return self.targets.get(target_name)
+
+    def set_shipped_nodes(self, shipped_nodes):
+        """Sets the shipped nodes for the graph."""
+        self.shipped = shipped_nodes
 
     def __str__(self):
         """Provides a human-readable representation of the graph."""
