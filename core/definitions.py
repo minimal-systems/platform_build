@@ -2027,6 +2027,44 @@ def declare_1p_copy_files(project_path, suffix, product_copy_files, all_non_modu
             print(f"Declared 1P copy file target: {target} from project path: {project_path}")
 
 
+def declare_1p_container(target, project_path, all_non_modules, all_targets, out_dir):
+    """
+    Declare a non-module container-type target to have a first-party license (Linux Apache 2.0).
+
+    Container-type targets are targets like .zip files that merely aggregate other files.
+
+    Args:
+        target (str): The non-module container target for which the license metadata is being declared.
+        project_path (str): The project path associated with the target.
+        all_non_modules (dict): Dictionary representing all non-module attributes.
+        all_targets (dict): Dictionary representing all target attributes.
+        out_dir (str): The base output directory for the build.
+
+    Returns:
+        None: Updates the dictionaries `all_non_modules` and `all_targets` in place.
+    """
+    # Define first-party license attributes
+    license_kinds = "SPDX-license-identifier-Apache-2.0"
+    license_conditions = "notice"
+    notices = "build/soong/licenses/LICENSE"
+    package_name = "Linux"
+
+    # Use the existing `declare_container_license_metadata` function to declare container target attributes
+    declare_container_license_metadata(
+        target,
+        license_kinds,
+        license_conditions,
+        notices,
+        package_name,
+        project_path,
+        all_non_modules,
+        all_targets,
+        out_dir,
+    )
+
+    print(f"Declared 1P container license metadata for target: {target} with project path: {project_path}")
+
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
