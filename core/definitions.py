@@ -2000,6 +2000,32 @@ def declare_1p_target(target, project_path, all_non_modules, all_targets, out_di
         out_dir=out_dir
     )
 
+# Define the declare_1p_copy_files function using the earlier provided logic
+def declare_1p_copy_files(project_path, suffix, product_copy_files, all_non_modules, all_targets, out_dir):
+    """
+    Declare that non-module targets copied from a project path (and optionally ending in a suffix) have first-party licenses.
+
+    Args:
+        project_path (str): The base project path to filter files from.
+        suffix (str): Optional suffix to match specific files (e.g., '.so').
+        product_copy_files (list): List of product copy files, where each element is a tuple (src_path, dest_path).
+        all_non_modules (dict): Dictionary representing all non-module attributes.
+        all_targets (dict): Dictionary representing all target attributes.
+        out_dir (str): The base output directory for the build.
+
+    Returns:
+        None: Updates the dictionaries `all_non_modules` and `all_targets` in place.
+    """
+    # Iterate over product copy files that match the project path and suffix
+    for src, dest in product_copy_files:
+        if src.startswith(project_path) and (suffix == "" or src.endswith(suffix)):
+            # Construct the full target path by joining output directory with destination path
+            target = f"{out_dir}/{dest.lstrip('/')}"
+
+            # Declare the target as first-party licensed using `declare_1p_target`
+            declare_1p_target(target, project_path, all_non_modules, all_targets, out_dir)
+            print(f"Declared 1P copy file target: {target} from project path: {project_path}")
+
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
