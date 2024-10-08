@@ -106,6 +106,7 @@ soong_already_converted = {}
 ## Debugging; prints a variable list to stdout
 ###########################################################
 
+
 # Function to print variable names and their corresponding values
 def print_vars(variable_names, variables):
     """
@@ -129,9 +130,10 @@ def print_vars(variable_names, variables):
         # If the variable has values, print them with indentation
         if var in variables and variables[var]:
             for value in variables[var]:
-                print(f"  {value}")  # Two spaces for indentation
+                print(f"  {value}")    # Two spaces for indentation
         else:
             print("  (No values found)")
+
 
 ###########################################################
 # Evaluates to "true" if the string contains the word "true",
@@ -139,6 +141,7 @@ def print_vars(variable_names, variables):
 # Arguments:
 #     var (str): A variable or string to test.
 ###########################################################
+
 
 def true_or_empty(var):
     """
@@ -152,6 +155,7 @@ def true_or_empty(var):
     """
     return "true" if "true" in var else ""
 
+
 def boolean_not(var):
     """
     Returns "true" if the input string does NOT contain "true", otherwise returns an empty string.
@@ -164,12 +168,14 @@ def boolean_not(var):
     """
     return "" if "true" in var else "true"
 
+
 ###########################################################
 # Rule for touching GCNO files.
 # Args:
 #     source_file (str or Path): Path to the source file (dependency).
 #     gcno_file (str or Path): Path to the GCNO file to be touched.
 ###########################################################
+
 
 def gcno_touch_rule(source_file, gcno_file):
     """
@@ -188,14 +194,17 @@ def gcno_touch_rule(source_file, gcno_file):
     if source_file.exists():
         # If the gcno file exists, update its timestamp
         if gcno_file.exists():
-            gcno_file.touch()  # This updates the timestamp of the file
+            gcno_file.touch()    # This updates the timestamp of the file
             print(f"Updated timestamp for existing file: {gcno_file}")
         else:
             # Create the gcno file if it does not exist
             gcno_file.touch()
             print(f"Created new GCNO file: {gcno_file}")
     else:
-        print(f"Source file {source_file} does not exist. GCNO file not touched or created.")
+        print(
+            f"Source file {source_file} does not exist. GCNO file not touched or created."
+        )
+
 
 ###########################################################
 
@@ -203,6 +212,7 @@ def gcno_touch_rule(source_file, gcno_file):
 ## Retrieve the directory of the current makefile
 ## Must be called before including any other makefile!!
 ###########################################################
+
 
 def call_my_dir(module_file, build_system_dir, out_dir):
     """
@@ -227,10 +237,13 @@ def call_my_dir(module_file, build_system_dir, out_dir):
         raise FileNotFoundError(f"Module file {module_file} does not exist.")
 
     # Ensure that call_my_dir is called before other module files are included.
-    if module_file.is_relative_to(build_system_dir) or module_file.is_relative_to(out_dir):
-        raise RuntimeError("call_my_dir must be called before including other module files.")
+    if module_file.is_relative_to(
+            build_system_dir) or module_file.is_relative_to(out_dir):
+        raise RuntimeError(
+            "call_my_dir must be called before including other module files.")
 
     return module_file.parent
+
 
 def get_module_dir(module_file, build_system_dir, out_dir):
     """
@@ -254,10 +267,14 @@ def get_module_dir(module_file, build_system_dir, out_dir):
     if not module_file.exists():
         raise FileNotFoundError(f"Module file {module_file} does not exist.")
 
-    if module_file.is_relative_to(build_system_dir) or module_file.is_relative_to(out_dir):
-        raise RuntimeError("get_module_dir must be called before including other module files.")
+    if module_file.is_relative_to(
+            build_system_dir) or module_file.is_relative_to(out_dir):
+        raise RuntimeError(
+            "get_module_dir must be called before including other module files."
+        )
 
     return str(module_file.parent)
+
 
 ###########################################################
 # Retrieve a list of all `module_info.bp` files immediately
@@ -270,6 +287,7 @@ def get_module_dir(module_file, build_system_dir, out_dir):
 #     list: List of paths to `module_info.bp` files found in the specified directory.
 ###########################################################
 
+
 def all_module_info_under(base_dir):
     """
     Retrieve a list of all `module_info.bp` files in the specified directory and its subdirectories.
@@ -280,12 +298,14 @@ def all_module_info_under(base_dir):
     Returns:
         list: List of paths to `module_info.bp` files found in the specified directory and its subdirectories.
     """
-    base_dir = Path(base_dir)  # Convert to Path object for easier manipulation
+    base_dir = Path(
+        base_dir)    # Convert to Path object for easier manipulation
 
     # Use rglob to find all `module_info.bp` files recursively in base_dir and its subdirectories
     module_info_files = [str(file) for file in base_dir.rglob("module_info.bp")]
 
     return module_info_files
+
 
 #TODO: add this to testcases
 # # Example usage
@@ -303,7 +323,11 @@ def all_module_info_under(base_dir):
 # $(1): directory to search under
 # Ignores $(1)/module_info.bp
 
-def first_module_info_under(base_dir, filename="module_info.bp", min_depth=0, max_depth=None):
+
+def first_module_info_under(base_dir,
+                            filename="module_info.bp",
+                            min_depth=0,
+                            max_depth=None):
     """
     Retrieve a dictionary of all specified files (e.g., `module_info.bp`) in the given directory and its subdirectories.
     The dictionary uses relative paths as keys and absolute paths as values. Allows control over minimum and maximum
@@ -319,7 +343,8 @@ def first_module_info_under(base_dir, filename="module_info.bp", min_depth=0, ma
         dict: Dictionary with relative paths as keys and absolute paths as values for the specified files found
               in the directory and its subdirectories.
     """
-    base_dir = Path(base_dir).resolve()  # Convert to absolute Path object for consistency
+    base_dir = Path(
+        base_dir).resolve()    # Convert to absolute Path object for consistency
 
     # Dictionary to store the relative paths as keys and absolute paths as values
     found_files = {}
@@ -330,12 +355,14 @@ def first_module_info_under(base_dir, filename="module_info.bp", min_depth=0, ma
         relative_depth = len(file.relative_to(base_dir).parts)
 
         # Check if the file is within the specified depth range
-        if relative_depth >= min_depth and (max_depth is None or relative_depth <= max_depth):
+        if relative_depth >= min_depth and (max_depth is None
+                                            or relative_depth <= max_depth):
             # Use the relative path as the key and the absolute path as the value
             relative_path = str(file.relative_to(base_dir))
             found_files[relative_path] = str(file)
 
     return found_files
+
 
 #TODO: add this to testcases
 # # Example usage
@@ -350,7 +377,13 @@ def first_module_info_under(base_dir, filename="module_info.bp", min_depth=0, ma
 ## Must be called before including any other module_info.bp!!
 ###########################################################
 
-def all_subdir_module_info(module_file, build_system_dir, out_dir, filename="module_info.bp", min_depth=0, max_depth=None):
+
+def all_subdir_module_info(module_file,
+                           build_system_dir,
+                           out_dir,
+                           filename="module_info.bp",
+                           min_depth=0,
+                           max_depth=None):
     """
     Retrieve a dictionary of `module_info.bp` files in subdirectories of the specified module file directory.
     Utilizes `get_module_dir` to get the base directory and allows specifying depth constraints. The resulting
@@ -374,7 +407,9 @@ def all_subdir_module_info(module_file, build_system_dir, out_dir, filename="mod
     # Dictionary to hold relative paths as keys and absolute paths as values
     found_files = {}
 
-    print(f"Searching for {filename} files in {base_dir} and its subdirectories...\n")
+    print(
+        f"Searching for {filename} files in {base_dir} and its subdirectories...\n"
+    )
 
     # Use rglob to find all instances of the specified filename
     for file in base_dir.rglob(filename):
@@ -385,7 +420,8 @@ def all_subdir_module_info(module_file, build_system_dir, out_dir, filename="mod
         print(f"Found: {file}, Relative Depth: {relative_depth}")
 
         # Check if the file is within the specified depth range
-        if relative_depth >= min_depth and (max_depth is None or relative_depth <= max_depth):
+        if relative_depth >= min_depth and (max_depth is None
+                                            or relative_depth <= max_depth):
             # Store relative path as the key and absolute path as the value
             relative_path = str(file.relative_to(base_dir))
             found_files[relative_path] = str(file)
@@ -410,6 +446,7 @@ def all_subdir_module_info(module_file, build_system_dir, out_dir, filename="mod
 ## Must be called before including any other makefile!!
 ###########################################################
 
+
 # $(1): List of directories to look for under this directory
 def all_named_subdir_module_info(directories, current_dir):
     """
@@ -423,8 +460,10 @@ def all_named_subdir_module_info(directories, current_dir):
     Returns:
         dict: A dictionary with relative paths as keys and absolute paths as values for all found `module_info.bp` files.
     """
-    current_dir = Path(current_dir).resolve()  # Resolve the current directory path
-    found_files = {}  # Dictionary to store relative and absolute paths of the found files
+    current_dir = Path(
+        current_dir).resolve()    # Resolve the current directory path
+    found_files = {
+    }    # Dictionary to store relative and absolute paths of the found files
 
     for directory in directories:
         dir_path = current_dir / directory
@@ -459,10 +498,11 @@ def all_named_dirs_under(directory_name, base_directories):
         dict: A dictionary with relative paths as keys and absolute paths as values for all directories
               matching `directory_name` under the given base directories.
     """
-    found_directories = {}  # Dictionary to store relative and absolute paths
+    found_directories = {}    # Dictionary to store relative and absolute paths
 
     for base_directory in base_directories:
-        base_directory = Path(base_directory).resolve()  # Resolve to absolute path
+        base_directory = Path(
+            base_directory).resolve()    # Resolve to absolute path
         if not base_directory.exists() or not base_directory.is_dir():
             continue
 
@@ -481,6 +521,7 @@ def all_named_dirs_under(directory_name, base_directories):
 ## haves name that match $(1)
 ###########################################################
 
+
 def all_subdir_named_dirs(directory_name):
     """
     Find all directories under the current directory with the specified name.
@@ -492,8 +533,9 @@ def all_subdir_named_dirs(directory_name):
         dict: A dictionary with relative paths as keys and absolute paths as values for all directories
               matching `directory_name` under the current directory.
     """
-    current_directory = Path(os.getcwd()).resolve()  # Resolve the current working directory
-    found_directories = {}  # Dictionary to store relative and absolute paths
+    current_directory = Path(
+        os.getcwd()).resolve()    # Resolve the current working directory
+    found_directories = {}    # Dictionary to store relative and absolute paths
 
     # Check if the current directory exists and is indeed a directory
     if not current_directory.exists() or not current_directory.is_dir():
@@ -516,6 +558,7 @@ def all_subdir_named_dirs(directory_name):
 ##    src_files = all_named_files_under("*.h", ["src", "tests"])
 ###########################################################
 
+
 def all_named_files_under(file_pattern, base_directories, local_path="."):
     """
     Find all of the files under the named directories with the specified name.
@@ -529,11 +572,13 @@ def all_named_files_under(file_pattern, base_directories, local_path="."):
         dict: A dictionary with relative paths as keys and absolute paths as values for all files that match the
               specified pattern under the given directories.
     """
-    local_path = Path(local_path).resolve()  # Resolve the base path to absolute path
-    found_files = {}  # Dictionary to store relative and absolute paths of found files
+    local_path = Path(
+        local_path).resolve()    # Resolve the base path to absolute path
+    found_files = {
+    }    # Dictionary to store relative and absolute paths of found files
 
     for base_dir in base_directories:
-        base_dir_path = local_path / base_dir  # Combine local path with base directory
+        base_dir_path = local_path / base_dir    # Combine local path with base directory
 
         if not base_dir_path.exists() or not base_dir_path.is_dir():
             continue
@@ -553,6 +598,7 @@ def all_named_files_under(file_pattern, base_directories, local_path="."):
 ## the specified name.
 ###########################################################
 
+
 def all_subdir_named_files(file_pattern):
     """
     Find all of the files under the current directory with the specified name.
@@ -566,7 +612,8 @@ def all_subdir_named_files(file_pattern):
     """
     # Get the current working directory and resolve it to an absolute path
     current_directory = Path(os.getcwd()).resolve()
-    found_files = {}  # Dictionary to store relative and absolute paths of found files
+    found_files = {
+    }    # Dictionary to store relative and absolute paths of found files
 
     # Use rglob to search for files that match the file pattern in the current directory and subdirectories
     for file_path in current_directory.rglob(file_pattern):
@@ -577,11 +624,13 @@ def all_subdir_named_files(file_pattern):
 
     return found_files
 
+
 ###########################################################
 ## Find all of the c files under the named directories.
 ## Meant to be used like:
 ##    src_files = all_c_files_under(["src", "tests"])
 ###########################################################
+
 
 def all_c_files_under(base_directories):
     """
@@ -596,7 +645,8 @@ def all_c_files_under(base_directories):
     """
     # Get the current working directory and resolve it to an absolute path
     local_path = Path(os.getcwd()).resolve()
-    found_files = {}  # Dictionary to store relative and absolute paths of found `.c` files
+    found_files = {
+    }    # Dictionary to store relative and absolute paths of found `.c` files
 
     for base_dir in base_directories:
         base_dir_path = local_path / base_dir
@@ -620,6 +670,7 @@ def all_c_files_under(base_directories):
 ##    src_files = all_subdir_c_files()
 ###########################################################
 
+
 def all_subdir_c_files():
     """
     Find all `.c` files under the current directory.
@@ -630,7 +681,8 @@ def all_subdir_c_files():
     """
     # Get the current working directory and resolve it to an absolute path
     current_directory = Path(os.getcwd()).resolve()
-    found_files = {}  # Dictionary to store relative and absolute paths of found `.c` files
+    found_files = {
+    }    # Dictionary to store relative and absolute paths of found `.c` files
 
     # Use rglob to search for `.c` files in the current directory and its subdirectories
     for file_path in current_directory.rglob("*.c"):
@@ -649,6 +701,7 @@ def all_subdir_c_files():
 ##    src_files = all_cpp_files_under(["src", "tests"], local_cpp_extension=".cpp")
 ###########################################################
 
+
 def all_cpp_files_under(base_directories, local_cpp_extension=".cpp"):
     """
     Find all `.cpp` files (or other specified extension) under the named directories.
@@ -663,7 +716,8 @@ def all_cpp_files_under(base_directories, local_cpp_extension=".cpp"):
     """
     # Get the current working directory and resolve it to an absolute path
     current_directory = Path(os.getcwd()).resolve()
-    found_files = {}  # Dictionary to store relative and absolute paths of found `.cpp` files
+    found_files = {
+    }    # Dictionary to store relative and absolute paths of found `.cpp` files
 
     for base_dir in base_directories:
         base_dir_path = current_directory / base_dir
@@ -688,6 +742,7 @@ def all_cpp_files_under(base_directories, local_cpp_extension=".cpp"):
 ##    src_files = all_subdir_cpp_files(local_cpp_extension=".cpp")
 ###########################################################
 
+
 def all_subdir_cpp_files(local_cpp_extension=".cpp"):
     """
     Find all `.cpp` files (or other specified extension) under the current directory.
@@ -701,7 +756,8 @@ def all_subdir_cpp_files(local_cpp_extension=".cpp"):
     """
     # Get the current working directory and resolve it to an absolute path
     current_directory = Path(os.getcwd()).resolve()
-    found_files = {}  # Dictionary to store relative and absolute paths of found `.cpp` files
+    found_files = {
+    }    # Dictionary to store relative and absolute paths of found `.cpp` files
 
     # Use rglob to search for files with the given extension in the current directory and its subdirectories
     for file_path in current_directory.rglob(f"*{local_cpp_extension}"):
@@ -719,6 +775,7 @@ def all_subdir_cpp_files(local_cpp_extension=".cpp"):
 ## Meant to be used like:
 ##    src_files = all_S_files_under(["src", "tests"])
 ###########################################################
+
 
 def all_S_files_under(base_directories):
     """
@@ -739,6 +796,7 @@ def all_S_files_under(base_directories):
 ##    src_files = all_html_files_under(["src", "tests"])
 ###########################################################
 
+
 def all_html_files_under(base_directories):
     """
     Find all `.html` files under the named directories.
@@ -757,6 +815,7 @@ def all_html_files_under(base_directories):
 ##    src_files = all_subdir_html_files()
 ###########################################################
 
+
 def all_subdir_html_files():
     """
     Find all `.html` files under the current directory and its subdirectories.
@@ -772,6 +831,7 @@ def all_subdir_html_files():
 ##    src_files = find_subdir_files(<pattern>, [<directories>])
 ###########################################################
 
+
 def find_subdir_files(pattern, base_directories):
     """
     Find all of the files matching the given pattern under the named directories.
@@ -784,10 +844,12 @@ def find_subdir_files(pattern, base_directories):
         dict: A dictionary with relative paths as keys and absolute paths as values for all files matching the
               given pattern under the specified directories.
     """
-    found_files = {}  # Dictionary to store relative and absolute paths of found files
+    found_files = {
+    }    # Dictionary to store relative and absolute paths of found files
 
     for base_dir in base_directories:
-        base_dir_path = Path(base_dir).resolve()  # Resolve base directory to absolute path
+        base_dir_path = Path(
+            base_dir).resolve()    # Resolve base directory to absolute path
         if not base_dir_path.exists() or not base_dir_path.is_dir():
             continue
 
@@ -809,6 +871,7 @@ def find_subdir_files(pattern, base_directories):
 #     src_files += find_subdir_subdir_files("css", "*.cpp", "DontWantThis.cpp")
 ###########################################################
 
+
 def find_subdir_subdir_files(subdir, pattern, exclude_pattern=None):
     """
     Find all files in the given subdirectory matching the pattern, excluding the files that match `exclude_pattern`.
@@ -822,11 +885,13 @@ def find_subdir_subdir_files(subdir, pattern, exclude_pattern=None):
         dict: A dictionary with relative paths as keys and absolute paths as values for all files matching the pattern,
               excluding files that match `exclude_pattern`.
     """
-    current_dir = Path(os.getcwd()).resolve() / subdir  # Resolve the subdirectory path
+    current_dir = Path(
+        os.getcwd()).resolve() / subdir    # Resolve the subdirectory path
     if not current_dir.exists() or not current_dir.is_dir():
         return {}
 
-    found_files = {}  # Dictionary to store relative and absolute paths of found files
+    found_files = {
+    }    # Dictionary to store relative and absolute paths of found files
 
     # Search for files in the specified subdirectory that match the pattern
     for file_path in current_dir.glob(pattern):
@@ -836,7 +901,8 @@ def find_subdir_subdir_files(subdir, pattern, exclude_pattern=None):
             absolute_path = str(file_path.resolve())
 
             # Check if the file should be excluded based on the exclude_pattern
-            if exclude_pattern and fnmatch.fnmatch(str(file_path), str(current_dir / exclude_pattern)):
+            if exclude_pattern and fnmatch.fnmatch(
+                    str(file_path), str(current_dir / exclude_pattern)):
                 continue
 
             # Store the relative path as the key and the absolute path as the value
@@ -850,6 +916,7 @@ def find_subdir_subdir_files(subdir, pattern, exclude_pattern=None):
 ##    src_files = find_subdir_assets(<directory>)
 ###########################################################
 
+
 def find_subdir_assets(base_directory=None):
     """
     Find all files in the given directory, excluding hidden files.
@@ -862,14 +929,17 @@ def find_subdir_assets(base_directory=None):
               in the given directory.
     """
     if not base_directory:
-        print(f"Warning: Empty argument supplied to find_subdir_assets in {os.getcwd()}")
+        print(
+            f"Warning: Empty argument supplied to find_subdir_assets in {os.getcwd()}"
+        )
         return {}
 
     base_dir_path = Path(base_directory).resolve()
     if not base_dir_path.exists() or not base_dir_path.is_dir():
         return {}
 
-    found_files = {}  # Dictionary to store relative and absolute paths of found files
+    found_files = {
+    }    # Dictionary to store relative and absolute paths of found files
 
     # Find all files, excluding hidden files (those starting with a dot)
     for file_path in base_dir_path.rglob("*"):
@@ -886,6 +956,7 @@ def find_subdir_assets(base_directory=None):
 ## Find various file types in a list of directories relative to the current path.
 ###########################################################
 
+
 def find_other_html_files(base_directories):
     """
     Find all `.html` files under the named directories relative to the current directory.
@@ -898,6 +969,7 @@ def find_other_html_files(base_directories):
     """
     return all_html_files_under(base_directories)
 
+
 ###########################################################
 # Use utility find to find given files in the given subdirs.
 # This function uses $(1), instead of LOCAL_PATH as the base.
@@ -906,6 +978,7 @@ def find_other_html_files(base_directories):
 # $(3): a list of subdirs of the base dir.
 # Returns: a list of paths relative to the base dir.
 ###########################################################
+
 
 def find_files_in_subdirs(base_dir, pattern, subdirs):
     """
@@ -920,8 +993,10 @@ def find_files_in_subdirs(base_dir, pattern, subdirs):
         dict: A dictionary with relative paths (relative to the base directory) as keys and absolute paths as values
               for all files matching the given pattern found in the specified subdirectories.
     """
-    base_dir_path = Path(base_dir).resolve()  # Resolve the base directory to an absolute path
-    found_files = {}  # Dictionary to store relative and absolute paths of found files
+    base_dir_path = Path(
+        base_dir).resolve()    # Resolve the base directory to an absolute path
+    found_files = {
+    }    # Dictionary to store relative and absolute paths of found files
 
     for subdir in subdirs:
         # Construct the full directory path
@@ -946,7 +1021,6 @@ def find_files_in_subdirs(base_dir, pattern, subdirs):
 # pattern = "*.cpp"
 # subdirs = ["dir1", "dir2"]
 # print(find_files_in_subdirs(base_dir, pattern, subdirs))
-
 
 ###########################################################
 ## Scan through each directory of $(1) looking for files
@@ -982,8 +1056,12 @@ def find_parent_file(start_dir, filename_pattern):
     # Traverse up the directory tree until we reach the root
     while True:
         # Use glob to find matching files in the current directory
-        matched_files = [os.path.join(current_dir, f) for f in os.listdir(current_dir)
-                         if os.path.isfile(os.path.join(current_dir, f)) and f == filename_pattern]
+        matched_files = [
+            os.path.join(current_dir, f)
+            for f in os.listdir(current_dir)
+            if os.path.isfile(os.path.join(current_dir, f))
+            and f == filename_pattern
+        ]
 
         # Return the first match found, if any
         if matched_files:
@@ -1009,6 +1087,7 @@ def find_parent_file(start_dir, filename_pattern):
 ## $(3): a list of subdirs of the base dir
 ###########################################################
 
+
 def find_test_data_in_subdirs(base_dir, filename_pattern, subdirs):
     """
     Find test data in a form required by LOCAL_TEST_DATA.
@@ -1029,8 +1108,10 @@ def find_test_data_in_subdirs(base_dir, filename_pattern, subdirs):
         result = find_test_data_in_subdirs(base_dir, filename_pattern, subdirs)
         print(result)  # Example output: {'subdir1/file1.txt': '/path/to/base:subdir1/file1.txt', ...}
     """
-    base_dir_path = Path(base_dir).resolve()  # Resolve the base directory to an absolute path
-    result_files = {}  # Dictionary to store relative paths and formatted string values
+    base_dir_path = Path(
+        base_dir).resolve()    # Resolve the base directory to an absolute path
+    result_files = {
+    }    # Dictionary to store relative paths and formatted string values
 
     for subdir in subdirs:
         # Construct the full search directory path
@@ -1109,14 +1190,16 @@ def fix_notice_deps(all_modules, all_modules_attrs):
     for module_name, attrs in all_modules_attrs.items():
         if 'NOTICE_DEPS' in attrs:
             for dep in attrs['NOTICE_DEPS']:
-                dep_name = dep.split(":")[0]  # Extract the module name from the dependency string
+                dep_name = dep.split(":")[
+                    0]    # Extract the module name from the dependency string
                 all_module_refs.add(dep_name)
 
     # Build a lookup dictionary for adorned module names.
     lookup = {}
     for ref in sorted(all_module_refs):
         if ref in all_modules_attrs and "PATH" in all_modules_attrs[ref]:
-            lookup[ref] = [ref]  # If the module is already adorned, add it as-is
+            lookup[ref] = [ref
+                          ]    # If the module is already adorned, add it as-is
         else:
             # Find possible adorned versions of the module
             adorned_versions = [
@@ -1124,15 +1207,18 @@ def fix_notice_deps(all_modules, all_modules_attrs):
                 f"host_cross_{ref}_32", f"host_cross_{ref}_64"
             ]
             # Check if these adorned versions exist in all_modules and add them to lookup
-            lookup[ref] = [mod for mod in adorned_versions if mod in all_modules]
+            lookup[ref] = [
+                mod for mod in adorned_versions if mod in all_modules
+            ]
 
     # Update 'NOTICE_DEPS' for each module using the lookup dictionary
     for module_name, attrs in all_modules_attrs.items():
         notice_deps = attrs.get("NOTICE_DEPS", [])
-        updated_deps = set()  # Use a set to avoid duplicates
+        updated_deps = set()    # Use a set to avoid duplicates
 
         for dep in notice_deps:
-            dep_name, dep_suffix = dep.split(":", 1) if ":" in dep else (dep, "")
+            dep_name, dep_suffix = dep.split(":", 1) if ":" in dep else (dep,
+                                                                         "")
             adorned_names = lookup.get(dep_name, [dep_name])
 
             # Create new dependencies with adorned names and the original suffix, if any
@@ -1161,7 +1247,9 @@ def license_metadata_dir(target, out_dir, generated_sources_dir="META/lic"):
     relative_target = target.replace(out_dir, "").lstrip("/")
     return f"{out_dir}/{generated_sources_dir}/{relative_target}"
 
+
 targets_missing_license_metadata = {}
+
 
 def corresponding_license_metadata(targets, all_modules, all_targets):
     """
@@ -1178,7 +1266,8 @@ def corresponding_license_metadata(targets, all_modules, all_targets):
     """
 
     # Dictionary to store license metadata paths for each target
-    license_metadata_paths = {}  # Format: {target_name: license_metadata_path}
+    license_metadata_paths = {
+    }    # Format: {target_name: license_metadata_path}
     # Dictionary to track targets that are missing license metadata
 
     # Iterate through each target to find corresponding metadata
@@ -1193,7 +1282,7 @@ def corresponding_license_metadata(targets, all_modules, all_targets):
             meta_lic = target_info.get("META_LIC")
 
         # If META_LIC is found, add to license_metadata_paths dictionary
-        if meta_lic and meta_lic != "0p":  # Exclude "0p" entries
+        if meta_lic and meta_lic != "0p":    # Exclude "0p" entries
             license_metadata_paths[target] = meta_lic
         else:
             # Add the target to the missing metadata dictionary
@@ -1202,7 +1291,8 @@ def corresponding_license_metadata(targets, all_modules, all_targets):
     return license_metadata_paths, targets_missing_license_metadata
 
 
-def declare_copy_target_license_metadata(target, sources, all_copied_targets, out_dir):
+def declare_copy_target_license_metadata(target, sources, all_copied_targets,
+                                         out_dir):
     """
     Record a target copied from another source(s) that will need license metadata.
 
@@ -1217,7 +1307,9 @@ def declare_copy_target_license_metadata(target, sources, all_copied_targets, ou
         None: Updates the `all_copied_targets` dictionary in place.
     """
     # Filter sources to only include those within the output directory.
-    filtered_sources = [source for source in sources if source.startswith(out_dir)]
+    filtered_sources = [
+        source for source in sources if source.startswith(out_dir)
+    ]
 
     # If there are sources within the output directory, proceed to record the target.
     if filtered_sources:
@@ -1231,10 +1323,13 @@ def declare_copy_target_license_metadata(target, sources, all_copied_targets, ou
 
         # Update the 'sources' field by adding the new sources and keeping them sorted and unique.
         existing_sources = all_copied_targets[target]["sources"]
-        all_copied_targets[target]["sources"] = sorted(set(existing_sources + filtered_sources))
+        all_copied_targets[target]["sources"] = sorted(
+            set(existing_sources + filtered_sources))
 
 
-def _license_metadata_rule(target, meta_lic, all_modules, all_targets, build_license_metadata_cmd, intermediates_dir, out_dir):
+def _license_metadata_rule(target, meta_lic, all_modules, all_targets,
+                           build_license_metadata_cmd, intermediates_dir,
+                           out_dir):
     """
     Internal function to process license metadata rules for a given target and meta_lic.
 
@@ -1288,7 +1383,8 @@ def _license_metadata_rule(target, meta_lic, all_modules, all_targets, build_lic
     for dep_name in notice_deps:
         dep_module = all_modules.get(dep_name)
         if dep_module:
-            sources[dep_name] = dep_module.get("installed", dep_module.get("built", dep_name))
+            sources[dep_name] = dep_module.get(
+                "installed", dep_module.get("built", dep_name))
 
     # Retrieve dependencies for the notice_deps
     deps = {}
@@ -1301,26 +1397,43 @@ def _license_metadata_rule(target, meta_lic, all_modules, all_targets, build_lic
     for src, dest in install_map.items():
         src_module = all_modules.get(src)
         if src_module:
-            source_files = src_module.get("installed", src_module.get("built", src))
+            source_files = src_module.get("installed",
+                                          src_module.get("built", src))
             install_map[src] = [f"{file}:{dest}" for file in source_files]
 
     # Prepare argument file path
-    argument_file = os.path.join(out_dir, "intermediates", "PACKAGING", "notice", target, "arguments")
+    argument_file = os.path.join(out_dir, "intermediates", "PACKAGING",
+                                 "notice", target, "arguments")
 
     # Prepare command arguments to dump into the file
     args_to_dump = {
-        "-mn": module_name if (module_name := target) else "",
-        "-mt": f'"{module_type}"' if module_type else "",
-        "-mc": f'"{module_class}"' if module_class else "",
-        "-k": f'"{" ".join(sorted(license_kinds))}"' if license_kinds else "",
-        "-c": f'"{" ".join(sorted(license_conditions))}"' if license_conditions else "",
-        "-n": f'"{" ".join(sorted(notices))}"' if notices else "",
-        "-d": f'"{",".join(sorted(deps.values()))}"' if deps else "",
-        "-s": f'"{",".join(sorted(sum(sources.values(), [])))}"' if sources else "",
-        "-m": f'"{",".join(sorted(sum(install_map.values(), [])))}"' if install_map else "",
-        "-t": f'"{" ".join(sorted(built))}"' if built else "",
-        "-i": f'"{" ".join(sorted(installed))}"' if installed else "",
-        "-r": f'"{" ".join(sorted(path))}"' if path else ""
+        "-mn":
+            module_name if (module_name := target) else "",
+        "-mt":
+            f'"{module_type}"' if module_type else "",
+        "-mc":
+            f'"{module_class}"' if module_class else "",
+        "-k":
+            f'"{" ".join(sorted(license_kinds))}"' if license_kinds else "",
+        "-c":
+            f'"{" ".join(sorted(license_conditions))}"'
+            if license_conditions else "",
+        "-n":
+            f'"{" ".join(sorted(notices))}"' if notices else "",
+        "-d":
+            f'"{",".join(sorted(deps.values()))}"' if deps else "",
+        "-s":
+            f'"{",".join(sorted(sum(sources.values(), [])))}"'
+            if sources else "",
+        "-m":
+            f'"{",".join(sorted(sum(install_map.values(), [])))}"'
+            if install_map else "",
+        "-t":
+            f'"{" ".join(sorted(built))}"' if built else "",
+        "-i":
+            f'"{" ".join(sorted(installed))}"' if installed else "",
+        "-r":
+            f'"{" ".join(sorted(path))}"' if path else ""
     }
 
     # Remove empty arguments
@@ -1333,7 +1446,8 @@ def _license_metadata_rule(target, meta_lic, all_modules, all_targets, build_lic
 
     # Read the argument file and format arguments correctly
     with open(argument_file, 'r') as file:
-        argument_content = " ".join(line.strip() for line in file if line.strip())
+        argument_content = " ".join(
+            line.strip() for line in file if line.strip())
 
     # Update all_targets with the metadata (as a dictionary entry)
     all_targets[target] = {
@@ -1364,13 +1478,19 @@ def _license_metadata_rule(target, meta_lic, all_modules, all_targets, build_lic
 
     try:
         # Execute the build command and capture the output and error
-        result = subprocess.run(build_command, shell=True, check=True, capture_output=True, text=True)
+        result = subprocess.run(build_command,
+                                shell=True,
+                                check=True,
+                                capture_output=True,
+                                text=True)
         return result.stdout, result.stderr
     except subprocess.CalledProcessError as e:
         return e.stdout, e.stderr
 
 
-def license_metadata_rule(target, all_modules, all_targets, build_license_metadata_cmd, intermediates_dir, out_dir):
+def license_metadata_rule(target, all_modules, all_targets,
+                          build_license_metadata_cmd, intermediates_dir,
+                          out_dir):
     """
     License metadata build rule for the given target.
 
@@ -1404,7 +1524,8 @@ def license_metadata_rule(target, all_modules, all_targets, build_license_metada
         )
 
 
-def non_module_license_metadata_rule(target, all_non_modules, all_targets, build_license_metadata_cmd, out_dir):
+def non_module_license_metadata_rule(target, all_non_modules, all_targets,
+                                     build_license_metadata_cmd, out_dir):
     """
     License metadata build rule for a non-module target.
 
@@ -1423,7 +1544,9 @@ def non_module_license_metadata_rule(target, all_non_modules, all_targets, build
     # Retrieve the non-module target dictionary from all_non_modules using the target as the key
     non_module_target = all_non_modules.get(target)
     if not non_module_target:
-        print(f"Non-module target '{target}' not found in all_non_modules dictionary.")
+        print(
+            f"Non-module target '{target}' not found in all_non_modules dictionary."
+        )
         return
 
     # Define the directory and metadata path
@@ -1441,19 +1564,30 @@ def non_module_license_metadata_rule(target, all_non_modules, all_targets, build
     install_map = non_module_target.get("root_mappings", "")
 
     # Create the argument file directory
-    intermediate_dir = os.path.join(out_dir, "intermediates", "packaging", "notice", os.path.basename(meta_path), "arguments")
+    intermediate_dir = os.path.join(out_dir, "intermediates",
+                                    "packaging", "notice",
+                                    os.path.basename(meta_path), "arguments")
     os.makedirs(os.path.dirname(intermediate_dir), exist_ok=True)
 
     # Create argument file content
     args_to_dump = {
-        "-k": " ".join(sorted(non_module_target.get("license_kinds", []))),
-        "-c": " ".join(sorted(non_module_target.get("license_conditions", []))),
-        "-n": " ".join(notices),
-        "-d": " ".join(deps),
-        "-s": " ".join(non_module_target.get("dependencies", [])),
-        "-m": " ".join(install_map) if isinstance(install_map, list) else install_map,
-        "-t": target,
-        "-r": " ".join(path)
+        "-k":
+            " ".join(sorted(non_module_target.get("license_kinds", []))),
+        "-c":
+            " ".join(sorted(non_module_target.get("license_conditions", []))),
+        "-n":
+            " ".join(notices),
+        "-d":
+            " ".join(deps),
+        "-s":
+            " ".join(non_module_target.get("dependencies", [])),
+        "-m":
+            " ".join(install_map)
+            if isinstance(install_map, list) else install_map,
+        "-t":
+            target,
+        "-r":
+            " ".join(path)
     }
 
     # Remove empty arguments
@@ -1472,24 +1606,36 @@ def non_module_license_metadata_rule(target, all_non_modules, all_targets, build
 
     # Update the all_targets dictionary with metadata
     all_targets[target] = {
-        "name": target,
-        "private_kinds": sorted(non_module_target.get("license_kinds", [])),
-        "private_conditions": sorted(non_module_target.get("license_conditions", [])),
-        "private_notices": notices,
-        "private_notice_deps": deps,
-        "private_sources": non_module_target.get("dependencies", []),
+        "name":
+            target,
+        "private_kinds":
+            sorted(non_module_target.get("license_kinds", [])),
+        "private_conditions":
+            sorted(non_module_target.get("license_conditions", [])),
+        "private_notices":
+            notices,
+        "private_notice_deps":
+            deps,
+        "private_sources":
+            non_module_target.get("dependencies", []),
         "private_targets": [target],
-        "private_path": path,
-        "private_is_container": non_module_target.get("is_container", False),
-        "private_package_name": non_module_target.get("license_package_name", ""),
-        "private_install_map": install_map,
-        "private_argument_file": intermediate_dir
+        "private_path":
+            path,
+        "private_is_container":
+            non_module_target.get("is_container", False),
+        "private_package_name":
+            non_module_target.get("license_package_name", ""),
+        "private_install_map":
+            install_map,
+        "private_argument_file":
+            intermediate_dir
     }
 
     print(f"Updated target metadata for: {target}")
 
 
-def record_missing_non_module_dependencies(target, all_non_modules, all_targets, missing_dependencies):
+def record_missing_non_module_dependencies(target, all_non_modules, all_targets,
+                                           missing_dependencies):
     """
     Record missing dependencies for a non-module target.
 
@@ -1503,8 +1649,11 @@ def record_missing_non_module_dependencies(target, all_non_modules, all_targets,
         None: The function updates the `missing_dependencies` list in-place.
     """
     # Check if `all_non_modules` and `all_targets` are dictionaries
-    if not isinstance(all_non_modules, dict) or not isinstance(all_targets, dict):
-        print(f"Error: `all_non_modules` or `all_targets` is not a dictionary. Received: {all_non_modules}, {all_targets}")
+    if not isinstance(all_non_modules, dict) or not isinstance(
+            all_targets, dict):
+        print(
+            f"Error: `all_non_modules` or `all_targets` is not a dictionary. Received: {all_non_modules}, {all_targets}"
+        )
         return
 
     # Retrieve the dictionary entry for the given non-module target from `all_non_modules`
@@ -1522,9 +1671,8 @@ def record_missing_non_module_dependencies(target, all_non_modules, all_targets,
             missing_dependencies.append(dep)
 
 
-
-
-def copied_target_license_metadata_rule(target_name: str, all_targets: dict) -> None:
+def copied_target_license_metadata_rule(target_name: str,
+                                        all_targets: dict) -> None:
     """
     Wrapper function to check if the given target's `meta_lic` attribute is defined.
     If not, calls `_copied_target_license_metadata_rule` for further processing.
@@ -1540,26 +1688,33 @@ def copied_target_license_metadata_rule(target_name: str, all_targets: dict) -> 
     target = all_targets.get(target_name)
 
     if not target:
-        print(f"{Fore.RED}Target '{target_name}' not found in all_targets.{Style.RESET_ALL}")
+        print(
+            f"{Fore.RED}Target '{target_name}' not found in all_targets.{Style.RESET_ALL}"
+        )
         return
 
     # Check if the target has a 'meta_lic' attribute
     if not target.get("meta_lic"):
         # Call the internal function to handle further operations
-        print(f"{Fore.CYAN}Calling _copied_target_license_metadata_rule for '{target_name}'...\n{Style.RESET_ALL}")
+        print(
+            f"{Fore.CYAN}Calling _copied_target_license_metadata_rule for '{target_name}'...\n{Style.RESET_ALL}"
+        )
         # You would pass additional arguments required for _copied_target_license_metadata_rule here.
         # Replace `None` placeholders with actual arguments as needed.
-        _copied_target_license_metadata_rule(
-            target_name,
-            all_targets,
-            all_copied_targets={},
-            copy_license_metadata_cmd="",
-            out_dir=""
-        )
+        _copied_target_license_metadata_rule(target_name,
+                                             all_targets,
+                                             all_copied_targets={},
+                                             copy_license_metadata_cmd="",
+                                             out_dir="")
     else:
-        print(f"{Fore.YELLOW}'meta_lic' is already defined for target '{target_name}', no action required.{Style.RESET_ALL}")
+        print(
+            f"{Fore.YELLOW}'meta_lic' is already defined for target '{target_name}', no action required.{Style.RESET_ALL}"
+        )
 
-def _copied_target_license_metadata_rule(target_name, all_targets, all_copied_targets, copy_license_metadata_cmd, out_dir):
+
+def _copied_target_license_metadata_rule(target_name, all_targets,
+                                         all_copied_targets,
+                                         copy_license_metadata_cmd, out_dir):
     """
     License metadata build rule for copied target, using dictionaries.
 
@@ -1576,11 +1731,14 @@ def _copied_target_license_metadata_rule(target_name, all_targets, all_copied_ta
     # Retrieve the target dictionary from all_targets
     target = all_targets.get(target_name, None)
     if not target:
-        print(f"{Fore.RED}Target '{target_name}' not found in all_targets.{Style.RESET_ALL}")
+        print(
+            f"{Fore.RED}Target '{target_name}' not found in all_targets.{Style.RESET_ALL}"
+        )
         return
 
     # Set intermediate variables
-    _dir = os.path.join(out_dir, "intermediates", "PACKAGING", "copynotice", target_name)
+    _dir = os.path.join(out_dir, "intermediates", "PACKAGING", "copynotice",
+                        target_name)
     _meta = os.path.join(_dir, f"{target_name}.meta_lic")
     _dep = None
 
@@ -1590,13 +1748,17 @@ def _copied_target_license_metadata_rule(target_name, all_targets, all_copied_ta
     # Retrieve the copied target information from all_copied_targets
     copied_target = all_copied_targets.get(target_name, None)
     if not copied_target:
-        print(f"{Fore.RED}Copied target '{target_name}' not found in all_copied_targets.{Style.RESET_ALL}")
+        print(
+            f"{Fore.RED}Copied target '{target_name}' not found in all_copied_targets.{Style.RESET_ALL}"
+        )
         return
 
     # Retrieve sources for the copied target
     sources = copied_target.get("sources", [])
     if not sources:
-        print(f"{Fore.RED}No sources found for copied target '{target_name}'.{Style.RESET_ALL}")
+        print(
+            f"{Fore.RED}No sources found for copied target '{target_name}'.{Style.RESET_ALL}"
+        )
         return
 
     # Find metadata of each source target in all_targets
@@ -1607,10 +1769,14 @@ def _copied_target_license_metadata_rule(target_name, all_targets, all_copied_ta
         if _dep is None:
             _dep = source_meta
         elif _dep != source_meta:
-            raise ValueError(f"Cannot copy target from multiple modules: {target_name} from {_dep} and {source_meta}")
+            raise ValueError(
+                f"Cannot copy target from multiple modules: {target_name} from {_dep} and {source_meta}"
+            )
 
     if not _dep:
-        raise ValueError(f"Cannot copy target from unknown module: {target_name} from {sources}")
+        raise ValueError(
+            f"Cannot copy target from unknown module: {target_name} from {sources}"
+        )
 
     # Create argument file directory
     argument_file = os.path.join(_dir, "arguments")
@@ -1618,9 +1784,7 @@ def _copied_target_license_metadata_rule(target_name, all_targets, all_copied_ta
 
     # Create argument file content
     args_to_dump = [
-        f"-i {target_name}",
-        f"-s {' '.join(sources)}",
-        f"-d {_dep}"
+        f"-i {target_name}", f"-s {' '.join(sources)}", f"-d {_dep}"
     ]
     with open(argument_file, 'w') as file:
         file.write("\n".join(args_to_dump))
@@ -1651,11 +1815,13 @@ def get_host_2nd_arch():
         return 'arm'
     return 'unknown'
 
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
         os.utime(f.fileno() if os.utime in os.supports_fd else fname,
-                 dir_fd=None if os.supports_fd else dir_fd, **kwargs)
+                 dir_fd=None if os.supports_fd else dir_fd,
+                 **kwargs)
 
 
 def product_copy_files(src: Union[str, Path], dest: Union[str, Path]) -> None:
@@ -1667,12 +1833,13 @@ def product_copy_files(src: Union[str, Path], dest: Union[str, Path]) -> None:
         src (Union[str, Path]): Source directory to copy files from.
         dest (Union[str, Path]): Destination directory to copy files to.
     """
-    src = str(src)  # Ensure src is of type str
-    dest = str(dest)  # Ensure dest is of type str
+    src = str(src)    # Ensure src is of type str
+    dest = str(dest)    # Ensure dest is of type str
 
     for root, dirs, files in os.walk(src):
         for file in files:
-            src_file = os.path.join(root, file)  # Use str type for path joining
+            src_file = os.path.join(root,
+                                    file)    # Use str type for path joining
             rel_path = os.path.relpath(src_file, src)
             dest_file = os.path.join(dest, rel_path)
 
@@ -1683,12 +1850,15 @@ def product_copy_files(src: Union[str, Path], dest: Union[str, Path]) -> None:
             shutil.copy2(src_file, dest_file)
             print(f"Copied {src_file} to {dest_file}")
 
+
 def parse_and_copy_files(file_list):
     for entry in file_list:
         if ':' in entry:
             src, dest = entry.split(':')
-            dest = dest.format(target_product_out=os.environ.get('TARGET_PRODUCT_OUT', ''))
+            dest = dest.format(
+                target_product_out=os.environ.get('TARGET_PRODUCT_OUT', ''))
             product_copy_files(src, dest)
+
 
 def include(module_path):
     module_name = os.path.splitext(os.path.basename(module_path))[0]
@@ -1697,4 +1867,3 @@ def include(module_path):
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
     globals().update(vars(module))
-
