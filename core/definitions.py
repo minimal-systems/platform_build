@@ -1944,6 +1944,30 @@ def declare_container_license_metadata(
     # Print confirmation of the declared license metadata
     print(f"Declared container license metadata for target: {target_path}")
 
+
+def declare_0p_target(target, all_0p_targets):
+    """
+    Declare that a non-module target is a non-copyrightable file.
+
+    For example, an information-only file that merely lists other files.
+
+    Args:
+        target (str): The non-module target to be marked as a non-copyrightable file.
+        all_0p_targets (dict): Dictionary to store all non-copyrightable targets.
+
+    Returns:
+        None: Updates the `all_0p_targets` dictionary in place.
+    """
+    # Format and clean up the target path
+    target_path = target.replace("//", "/").strip()
+
+    # Add the target to the non-copyrightable targets dictionary
+    all_0p_targets[target_path] = True
+
+    # Print confirmation of the declared non-copyrightable target
+    print(f"Declared non-copyrightable target: {target_path}")
+
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
