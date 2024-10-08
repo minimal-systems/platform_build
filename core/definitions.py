@@ -4,10 +4,10 @@ import platform
 import importlib.util
 import sys
 from pathlib import Path
-import glob
 import subprocess
-from collections import defaultdict
+import shutil
 from colorama import Fore, Style, init
+from typing import Union
 
 # Initialize colorama for cross-platform support
 init(autoreset=True)
@@ -1495,47 +1495,50 @@ def record_missing_non_module_dependencies(target, all_non_modules, all_targets,
 
     Args:
         target (str): The non-module target for which the dependencies need to be checked.
-        all_non_modules (list): List of all non-module targets with their attributes.
-        all_targets (list): List of all targets with their attributes.
+        all_non_modules (dict): Dictionary of all non-module targets with their attributes.
+        all_targets (dict): Dictionary of all targets with their attributes.
         missing_dependencies (list): List to accumulate non-modules without license metadata.
 
     Returns:
         None: The function updates the `missing_dependencies` list in-place.
     """
-    # Ensure all_non_modules is a list of dictionaries
-    if isinstance(all_non_modules, list) and all(isinstance(nm, dict) for nm in all_non_modules):
-        # Retrieve the dictionary entry for the given non-module target from the list
-        non_module_target = next((nm for nm in all_non_modules if nm.get("name") == target), {})
-    else:
-        print(f"Error: all_non_modules is not a list of dictionaries. Received: {all_non_modules}")
+    # Check if `all_non_modules` and `all_targets` are dictionaries
+    if not isinstance(all_non_modules, dict) or not isinstance(all_targets, dict):
+        print(f"Error: `all_non_modules` or `all_targets` is not a dictionary. Received: {all_non_modules}, {all_targets}")
         return
+
+    # Retrieve the dictionary entry for the given non-module target from `all_non_modules`
+    non_module_target = all_non_modules.get(target, {})
 
     # Get dependencies for the non-module target
     dependencies = non_module_target.get("dependencies", [])
 
     # Iterate over each dependency to check if it has metadata
     for dep in dependencies:
-        # Check if the dependency exists in all_targets and has license metadata
-        dep_target = next((t for t in all_targets if t.get("name") == dep), None)
+        # Check if the dependency exists in `all_targets` and has `meta_lic` metadata
+        dep_target = all_targets.get(dep)
         if dep_target is None or "meta_lic" not in dep_target:
             # Record the dependency if it does not have license metadata
             missing_dependencies.append(dep)
 
 
-def copied_target_license_metadata_rule(target_name, all_targets):
+
+
+def copied_target_license_metadata_rule(target_name: str, all_targets: dict) -> None:
     """
     Wrapper function to check if the given target's `meta_lic` attribute is defined.
     If not, calls `_copied_target_license_metadata_rule` for further processing.
 
     Args:
         target_name (str): The name of the target to check.
-        all_targets (list): List of target dictionaries, each representing a target with attributes.
+        all_targets (dict): Dictionary of target attributes with target names as keys.
 
     Returns:
         None: Calls `_copied_target_license_metadata_rule` if `meta_lic` is not defined.
     """
-    # Find the target in the list of all targets
-    target = next((t for t in all_targets if t.get("name") == target_name), None)
+    # Directly retrieve the target from the dictionary
+    target = all_targets.get(target_name)
+
     if not target:
         print(f"{Fore.RED}Target '{target_name}' not found in all_targets.{Style.RESET_ALL}")
         return
@@ -1546,10 +1549,15 @@ def copied_target_license_metadata_rule(target_name, all_targets):
         print(f"{Fore.CYAN}Calling _copied_target_license_metadata_rule for '{target_name}'...\n{Style.RESET_ALL}")
         # You would pass additional arguments required for _copied_target_license_metadata_rule here.
         # Replace `None` placeholders with actual arguments as needed.
-        _copied_target_license_metadata_rule(target_name, all_targets, all_copied_targets=[], copy_license_metadata_cmd="", out_dir="")
+        _copied_target_license_metadata_rule(
+            target_name,
+            all_targets,
+            all_copied_targets={},
+            copy_license_metadata_cmd="",
+            out_dir=""
+        )
     else:
         print(f"{Fore.YELLOW}'meta_lic' is already defined for target '{target_name}', no action required.{Style.RESET_ALL}")
-
 
 def _copied_target_license_metadata_rule(target_name, all_targets, all_copied_targets, copy_license_metadata_cmd, out_dir):
     """
@@ -1648,14 +1656,32 @@ def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
         os.utime(f.fileno() if os.utime in os.supports_fd else fname,
                  dir_fd=None if os.supports_fd else dir_fd, **kwargs)
-        
-def product_copy_files(src, dest):
+
+
+def product_copy_files(src: Union[str, Path], dest: Union[str, Path]) -> None:
+    """
+    Copy all files from the source directory to the destination directory,
+    maintaining the directory structure.
+
+    Args:
+        src (Union[str, Path]): Source directory to copy files from.
+        dest (Union[str, Path]): Destination directory to copy files to.
+    """
+    src = str(src)  # Ensure src is of type str
+    dest = str(dest)  # Ensure dest is of type str
+
     for root, dirs, files in os.walk(src):
         for file in files:
-            src_file = os.path.join(root, file)
-            dest_file = os.path.join(dest, os.path.relpath(src_file, src))
+            src_file = os.path.join(root, file)  # Use str type for path joining
+            rel_path = os.path.relpath(src_file, src)
+            dest_file = os.path.join(dest, rel_path)
+
+            # Create destination directory if it does not exist
             os.makedirs(os.path.dirname(dest_file), exist_ok=True)
-            os.system(f'cp -f {src_file} {dest_file}')
+
+            # Copy file using shutil.copy2 for better handling
+            shutil.copy2(src_file, dest_file)
+            print(f"Copied {src_file} to {dest_file}")
 
 def parse_and_copy_files(file_list):
     for entry in file_list:
