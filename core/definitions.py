@@ -1967,6 +1967,39 @@ def declare_0p_target(target, all_0p_targets):
     # Print confirmation of the declared non-copyrightable target
     print(f"Declared non-copyrightable target: {target_path}")
 
+def declare_1p_target(target, project_path, all_non_modules, all_targets, out_dir):
+    """
+    Declare that a non-module target has a first-party license (e.g., Linux Apache 2.0).
+
+    Args:
+        target (str): The non-module target to be declared.
+        project_path (str): The project path associated with the target.
+        all_non_modules (dict): Dictionary to store all non-module attributes.
+        all_targets (dict): Dictionary to store all targets and their attributes.
+        out_dir (str): The base output directory.
+
+    Returns:
+        None: Updates `all_non_modules` and `all_targets` dictionaries in place.
+    """
+    # Define first-party license attributes
+    license_kinds = "SPDX-license-identifier-Apache-2.0"
+    license_conditions = "notice"
+    notices = "build/soong/licenses/LICENSE"
+    package_name = "Linux"
+
+    # Call the existing declare_license_metadata function with the first-party license attributes
+    declare_license_metadata(
+        target=target,
+        license_kinds=license_kinds,
+        license_conditions=license_conditions,
+        notices=notices,
+        package_name=package_name,
+        project_path=project_path,
+        all_non_modules=all_non_modules,
+        all_targets=all_targets,
+        out_dir=out_dir
+    )
+
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
