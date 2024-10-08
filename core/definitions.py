@@ -2095,6 +2095,42 @@ def declare_license_deps(target, deps, all_non_modules, all_targets, out_dir):
     print(f"Declared license dependencies for non-module target: {target_name}")
 
 
+def declare_container_license_deps(target, dependencies, root_mappings, all_non_modules, all_targets, out_dir):
+    """
+    Declare license dependencies with optional colon-separated annotations for a non-module container-type target.
+
+    Container-type targets are targets like .zip files that aggregate other files.
+
+    Args:
+        target (str): The non-module container target for which the license dependencies are being declared.
+        dependencies (str): Space-separated list of dependencies with optional colon-separated annotations.
+        root_mappings (str): Space-separated root mappings in the form of source:target.
+        all_non_modules (dict): Dictionary representing all non-module attributes.
+        all_targets (dict): Dictionary representing all target attributes.
+        out_dir (str): The base output directory for the build.
+
+    Returns:
+        None: Updates the dictionaries `all_non_modules` and `all_targets` in place.
+    """
+    # Normalize target name
+    target_name = target.strip().replace("//", "/")
+
+    # Initialize non-module container target and ensure it's registered
+    non_module = all_non_modules.setdefault(target_name, {})
+    all_non_modules.setdefault("all_non_modules", set()).add(target_name)
+
+    # Define and set the META_LIC path for the target
+    meta_lic_path = f"{out_dir}/META/lic/{target_name}/{target_name}.meta_lic"
+    all_targets.setdefault(target_name, {})["META_LIC"] = meta_lic_path
+
+    # Update dependencies and root mappings for the container target
+    non_module["dependencies"] = sorted(set(non_module.get("dependencies", []) + dependencies.split()))
+    non_module["is_container"] = True
+    non_module["root_mappings"] = sorted(set(non_module.get("root_mappings", []) + root_mappings.split()))
+
+    print(f"Declared container license dependencies for non-module target: {target_name}")
+
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
