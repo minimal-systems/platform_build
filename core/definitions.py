@@ -2064,6 +2064,36 @@ def declare_1p_container(target, project_path, all_non_modules, all_targets, out
 
     print(f"Declared 1P container license metadata for target: {target} with project path: {project_path}")
 
+def declare_license_deps(target, deps, all_non_modules, all_targets, out_dir):
+    """
+    Declare license dependencies with optional colon-separated annotations for a non-module target.
+
+    Args:
+        target (str): The non-module target for which the license dependencies are being declared.
+        deps (str): Space-separated list of dependencies with optional colon-separated annotations.
+        all_non_modules (dict): Dictionary representing all non-module attributes.
+        all_targets (dict): Dictionary representing all target attributes.
+        out_dir (str): The base output directory for the build.
+
+    Returns:
+        None: Updates the dictionaries `all_non_modules` and `all_targets` in place.
+    """
+    # Normalize target name
+    target_name = target.strip().replace("//", "/")
+
+    # Initialize non-module target and ensure it's registered
+    non_module = all_non_modules.setdefault(target_name, {})
+    all_non_modules.setdefault("all_non_modules", set()).add(target_name)
+
+    # Define and set the META_LIC path for the target
+    meta_lic_path = f"{out_dir}/META/lic/{target_name}/{target_name}.meta_lic"
+    all_targets.setdefault(target_name, {})["META_LIC"] = meta_lic_path
+
+    # Update dependencies for the target
+    non_module["dependencies"] = sorted(set(non_module.get("dependencies", []) + deps.split()))
+
+    print(f"Declared license dependencies for non-module target: {target_name}")
+
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
