@@ -1901,6 +1901,49 @@ def declare_copy_files_license_metadata(
     print(f"Declared license metadata for copied files from project: {project}")
 
 
+def declare_container_license_metadata(
+        target, license_kinds, license_conditions, notices, package_name, project_path, all_non_modules, all_targets, out_dir):
+    """
+    Declare the license metadata for a non-module container-type target.
+
+    Container-type targets are targets like `.zip` files that merely aggregate other files.
+
+    Args:
+        target (str): The non-module container target for which license metadata is being declared.
+        license_kinds (str): License kinds (e.g., "SPDX-license-identifier-Apache-2.0").
+        license_conditions (str): License conditions (e.g., "notice", "by_exception_only").
+        notices (str): License text filenames (notices).
+        package_name (str): The package name associated with the license metadata.
+        project_path (str): The project path for the non-module container target.
+        all_non_modules (dict): Dictionary representing all non-module attributes.
+        all_targets (dict): Dictionary representing all target attributes.
+        out_dir (str): The base output directory for the build.
+
+    Returns:
+        None: Updates the dictionaries `all_non_modules` and `all_targets` in place.
+    """
+    # Format and clean up the target path
+    target_path = target.replace("//", "/").strip()
+
+    # Add the target to the non-modules dictionary
+    all_non_modules[target_path] = all_non_modules.get(target_path, {})
+
+    # Define the META_LIC path for the target
+    meta_lic_path = f"{out_dir}/META/lic/{target_path}.meta_lic"
+    all_targets[target_path] = all_targets.get(target_path, {})
+    all_targets[target_path]["META_LIC"] = meta_lic_path
+
+    # Update the license metadata attributes for the non-module container target
+    all_non_modules[target_path]["license_kinds"] = license_kinds.strip()
+    all_non_modules[target_path]["license_conditions"] = license_conditions.strip()
+    all_non_modules[target_path]["notices"] = notices.strip()
+    all_non_modules[target_path]["license_package_name"] = package_name.strip()
+    all_non_modules[target_path]["path"] = project_path.strip()
+    all_non_modules[target_path]["is_container"] = True
+
+    # Print confirmation of the declared license metadata
+    print(f"Declared container license metadata for target: {target_path}")
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
