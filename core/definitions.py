@@ -1854,6 +1854,52 @@ def declare_license_metadata(
 
     print(f"Declared license metadata for non-module target: {target_name}")
 
+def declare_copy_files_license_metadata(
+        project, suffix, license_kinds, license_conditions, notices, package_name, product_copy_files, all_non_modules, all_targets, out_dir):
+    """
+    Declare that non-module targets copied from a project have specific license metadata.
+
+    Args:
+        project (str): The project path from which the files are copied (e.g., "vendor/config").
+        suffix (str): Optional suffix to filter specific files (e.g., ".conf").
+        license_kinds (str): License kinds (e.g., "SPDX-license-identifier-Apache-2.0").
+        license_conditions (str): License conditions (e.g., "notice", "by_exception_only").
+        notices (str): License text filenames (notices).
+        package_name (str): The package name associated with the license metadata.
+        product_copy_files (list of str): List of files copied to the product, with paths formatted as "source:destination".
+        all_non_modules (dict): Dictionary representing all non-module attributes.
+        all_targets (dict): Dictionary representing all target attributes.
+        out_dir (str): The base output directory for the build.
+
+    Returns:
+        None: Updates the dictionaries `all_non_modules` and `all_targets` in place.
+    """
+    # Strip and format the project name to match the convention used in product_copy_files
+    project = project.strip()
+
+    # Iterate through each copied file pair in `product_copy_files`
+    for pair in product_copy_files:
+        # Check if the source file matches the project and suffix pattern
+        source, destination = pair.split(':')
+        if source.startswith(project) and source.endswith(suffix):
+            # Construct the full destination path
+            destination_path = f"{out_dir}/{destination.lstrip('/')}"
+
+            # Declare license metadata for this non-module target
+            declare_license_metadata(
+                target=destination_path,
+                license_kinds=license_kinds,
+                license_conditions=license_conditions,
+                notices=notices,
+                package_name=package_name,
+                project_path=project,
+                all_non_modules=all_non_modules,
+                all_targets=all_targets,
+                out_dir=out_dir
+            )
+
+    print(f"Declared license metadata for copied files from project: {project}")
+
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
