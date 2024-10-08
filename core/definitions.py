@@ -2170,6 +2170,37 @@ def report_missing_licenses_rule(non_modules_without_metadata, targets_missing_m
     # Print summary of missing metadata
     print(f"{len(private_non_modules)} targets missing license metadata", file=sys.stderr)
 
+def all_license_metadata(all_non_modules, all_targets, all_modules):
+    """
+    Returns the unique list of built license metadata files, excluding '0p' entries.
+
+    Args:
+        all_non_modules (dict): Dictionary of all non-module attributes.
+        all_targets (dict): Dictionary of all target attributes, where keys are target names and values are attributes.
+        all_modules (dict): Dictionary of all module attributes, where keys are module names and values are attributes.
+
+    Returns:
+        list: Unique sorted list of built license metadata paths, excluding '0p' entries.
+    """
+    # Collect metadata paths from all non-modules, excluding entries with '0p'
+    non_module_meta_lics = [
+        all_targets[target]["META_LIC"]
+        for target in all_non_modules
+        if target in all_targets and "META_LIC" in all_targets[target] and all_targets[target]["META_LIC"] != "0p"
+    ]
+
+    # Collect metadata paths from all modules
+    module_meta_lics = [
+        module_data["META_LIC"]
+        for module_name, module_data in all_modules.items()
+        if "META_LIC" in module_data
+    ]
+
+    # Combine, sort, and remove duplicates
+    unique_meta_lics = sorted(set(non_module_meta_lics + module_meta_lics))
+
+    return unique_meta_lics
+
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
