@@ -15,6 +15,8 @@
 # limitations under the License.
 
 import re
+from conditionset import LicenseConditionSet
+from condition import LicenseCondition  # Import LicenseCondition for condition constants
 
 # Recognized Annotations
 RECOGNIZED_ANNOTATIONS = {
@@ -38,35 +40,18 @@ SAFE_PATH_PREFIXES = [
     {"prefix": "tools/", "strip": False},
 ]
 
-# Safe Prebuilt Prefixes - This would typically include regex matching for safe paths
+# Safe Prebuilt Prefixes - This would typically include regex matching for safe paths.
 SAFE_PREBUILT_PREFIXES = [
     {"pattern": re.compile(r"external/"), "strip": True},
     {"pattern": re.compile(r"prebuilts/"), "strip": False},
 ]
 
-# Conditions that imply Unencumbered
-IMPLIES_UNENCUMBERED = {"UnencumberedCondition"}
+# Conditions that imply Unencumbered.
+IMPLIES_UNENCUMBERED = {LicenseCondition.UNENCUMBERED}
 
-# Conditions that imply Permissive
-IMPLIES_PERMISSIVE = {"PermissiveCondition"}
+# Conditions that imply Permissive.
+IMPLIES_PERMISSIVE = {LicenseCondition.PERMISSIVE}
 
-# Define LicenseConditionSet class or use a set to manage these condition sets as required
-class LicenseConditionSet:
-    """Class to manage License Condition sets."""
-    def __init__(self, *conditions):
-        self.conditions = set(conditions)
-
-    def add(self, condition):
-        """Adds a new condition to the set."""
-        self.conditions.add(condition)
-
-    def __contains__(self, condition):
-        """Checks if the condition is present in the set."""
-        return condition in self.conditions
-
-    def __str__(self):
-        """String representation of the condition set."""
-        return f"LicenseConditionSet({', '.join(self.conditions)})"
 
 # Example Usage
 if __name__ == "__main__":
@@ -75,3 +60,9 @@ if __name__ == "__main__":
     print("Safe Prebuilt Prefixes:", [prefix["pattern"].pattern for prefix in SAFE_PREBUILT_PREFIXES])
     print("Conditions that imply Unencumbered:", IMPLIES_UNENCUMBERED)
     print("Conditions that imply Permissive:", IMPLIES_PERMISSIVE)
+
+    # Demonstrate usage of LicenseConditionSet with correct LicenseCondition constants
+    condition_set = LicenseConditionSet()
+    condition_set.add(LicenseCondition.UNENCUMBERED)  # Use LicenseCondition.UNENCUMBERED (integer constant)
+    condition_set.add(LicenseCondition.PERMISSIVE)    # Use LicenseCondition.PERMISSIVE (integer constant)
+    print(f"LicenseConditionSet: {condition_set}")
