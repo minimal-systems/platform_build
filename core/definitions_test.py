@@ -3,7 +3,7 @@ from definitions import (
     non_module_license_metadata_rule,
     record_missing_non_module_dependencies,
     copied_target_license_metadata_rule,
-    _copied_target_license_metadata_rule
+    _copied_target_license_metadata_rule,
 )
 import os
 from colorama import Fore, Style, init
@@ -28,8 +28,8 @@ def update_progress():
 
 def setup_modules():
     """Provide a consistent setup for all_modules."""
-    return [
-        {
+    return {
+        "environment": {
             "name": "environment",
             "delayed_meta_lic": ["meta_lic1", "meta_lic2"],
             "notice_deps": ["vendor_init:dep_suffix"],
@@ -42,29 +42,29 @@ def setup_modules():
             "is_container": True,
             "module_type": "type1",
             "module_class": "class1",
-            "license_install_map": ["vendor_init:/destination/path"],
+            "license_install_map": {"vendor_init": "/destination/path"},
             "path": ["out/target/product/generic/rootfs/etc/environment"],
         },
-        {
+        "vendor_init": {
             "name": "vendor_init",
             "built": ["vendor_init.built"],
             "installed": ["vendor_init.installed"],
             "license_kinds": ["spdx-license-identifier-apache-2.0"],
             "meta_lic": "vendor_init.meta_lic"  # This module has metadata
         },
-        # Ensure vendor_config is also included initially for _copied_target_license_metadata_rule
-        {
+        "vendor_config": {
             "name": "vendor_config",
             "built": ["vendor_config.built"],
             "installed": ["vendor_config.installed"],
             "license_kinds": ["spdx-license-identifier-apache-2.0"]
         }
-    ]
+    }
+
 
 def setup_non_modules():
     """Provide a consistent setup for all_non_modules."""
-    return [
-        {
+    return {
+        "vendor_config": {
             "name": "vendor_config",
             "dependencies": ["vendor_init", "missing_target"],  # Includes a missing dependency
             "notices": ["build/soong/licenses/notice_vendor"],
@@ -75,12 +75,12 @@ def setup_non_modules():
             "is_container": True,
             "license_package_name": "package_name_vendor"
         }
-    ]
+    }
 
 
 def setup_targets():
-    """Initialize an empty list to represent all_targets."""
-    return []
+    """Initialize an empty dictionary to represent all_targets."""
+    return {}
 
 
 def setup_paths():
@@ -101,9 +101,9 @@ def print_target_details(all_targets):
     """Print details of all targets if printing conditions are enabled."""
     if PRINT_CONDITIONS:
         print(f"{Fore.CYAN}Updated all_targets:{Style.RESET_ALL}")
-        for target in all_targets:
-            print(f"{Fore.CYAN}Target: {target['name']}{Style.RESET_ALL}")
-            for key, value in target.items():
+        for target_name, target_data in all_targets.items():
+            print(f"{Fore.CYAN}Target: {target_name}{Style.RESET_ALL}")
+            for key, value in target_data.items():
                 print(f"  {key}: {value}")
 
 
@@ -120,9 +120,16 @@ def run_license_metadata_test():
     print_target_details(all_targets)
 
     # Perform assertions with print results
-    print_result(len(all_targets) == 2, "Expected 2 targets to be added for 'environment'", f"Expected 2 targets, but got {len(all_targets)}")
-    target_names = [target["name"] for target in all_targets]
-    print_result("environment" in target_names, "'environment' is in the target names", "'environment' is not in the target names")
+    print_result(
+        len(all_targets) == 2,
+        "Expected 2 targets to be added for 'environment'",
+        f"Expected 2 targets, but got {len(all_targets)}"
+    )
+    print_result(
+        "environment" in all_targets,
+        "'environment' is in the target names",
+        "'environment' is not in the target names"
+    )
 
 
 def run_non_module_license_metadata_test():
@@ -136,7 +143,11 @@ def run_non_module_license_metadata_test():
     non_module_license_metadata_rule("vendor_config", all_non_modules, all_targets, build_license_metadata_cmd, out_dir)
 
     print_target_details(all_targets)
-    print_result(len(all_targets) == 1, "Expected 1 target to be added for 'vendor_config'", f"Expected 1 target, but got {len(all_targets)}")
+    print_result(
+        len(all_targets) == 1,
+        "Expected 1 target to be added for 'vendor_config'",
+        f"Expected 1 target, but got {len(all_targets)}"
+    )
 
 
 def run_record_missing_dependencies_test():
@@ -153,14 +164,18 @@ def run_record_missing_dependencies_test():
     for dep in missing_dependencies:
         print(f"  {Fore.RED}{dep}{Style.RESET_ALL}")
 
-    print_result(len(missing_dependencies) == 1, "Expected 1 missing dependency for 'vendor_config'", f"Expected 1 missing dependency, but got {len(missing_dependencies)}")
+    print_result(
+        len(missing_dependencies) == 1,
+        "Expected 1 missing dependency for 'vendor_config'",
+        f"Expected 1 missing dependency, but got {len(missing_dependencies)}"
+    )
 
 
 def run_copied_target_license_metadata_test():
     """Test copied target license metadata rule."""
     update_progress()
     all_targets = setup_modules()
-    all_copied_targets = [{"name": "vendor_config", "sources": ["vendor_init"]}]
+    all_copied_targets = {"vendor_config": {"sources": ["vendor_init"]}}
     copy_license_metadata_cmd = "build/soong/compliance/copy_license_metadata"
     out_dir = "out/target/product/generic"
 
@@ -168,10 +183,12 @@ def run_copied_target_license_metadata_test():
     _copied_target_license_metadata_rule("vendor_config", all_targets, all_copied_targets, copy_license_metadata_cmd, out_dir)
 
     print_target_details(all_targets)
-    vendor_config_target = next((t for t in all_targets if t["name"] == "vendor_config"), None)
+    vendor_config_target = all_targets.get("vendor_config", None)
     has_meta_lic = vendor_config_target and "meta_lic" in vendor_config_target
     print_result(has_meta_lic, "'meta_lic' attribute is correctly set for 'vendor_config'", "'meta_lic' attribute is not set for 'vendor_config'")
 
+
+    # No assertions, just print the output
 
 # Run all tests
 if __name__ == "__main__":
@@ -179,6 +196,5 @@ if __name__ == "__main__":
     run_license_metadata_test()
     run_non_module_license_metadata_test()
     run_record_missing_dependencies_test()
-
     # Final progress print
     print(f"\n{Fore.CYAN}All test cases executed successfully! {PROGRESS_EMOJIS[-1]}{Style.RESET_ALL}")
