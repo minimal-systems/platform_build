@@ -21,6 +21,25 @@ def run_once(func):
                 return result
     return wrapper
 
+class AnnotationSet:
+    """
+    Represents a set of annotations associated with an edge in the license graph.
+    """
+    def __init__(self, annotations=None):
+        if annotations is None:
+            self.annotations = set()
+        else:
+            self.annotations = set(annotations)
+
+    def HasAnnotation(self, annotation):
+        return annotation in self.annotations
+
+    def AddAnnotation(self, annotation):
+        self.annotations.add(annotation)
+
+    def __str__(self):
+        return f"AnnotationSet({self.annotations})"
+
 class LicenseGraph:
     """
     LicenseGraph describes the immutable license metadata for a set of root
@@ -76,6 +95,9 @@ class LicenseGraph:
         # lock guards against concurrent update.
         self.lock = threading.Lock()
 
+        # edgeLock guards against concurrent update of edges.
+        self.edges = []
+
     # Edges returns the list of edges in the graph. (unordered)
     def Edges(self):
         with self.lock:
@@ -90,6 +112,17 @@ class LicenseGraph:
     def TargetNames(self):
         with self.lock:
             return list(self.targets.keys())
+
+    def add_edge(self, edge):
+        with self.lock:
+            self.edges.append(edge)
+            # Add target and dependency to targets dictionary if not already present
+            if edge.target.name not in self.targets:
+                self.targets[edge.target.name] = edge.target
+            if edge.dependency.name not in self.targets:
+                self.targets[edge.dependency.name] = edge.dependency
+            # Optionally, add the edge to the target node's edges list
+            edge.target.edges.append(edge)
 
     # compliance-only LicenseGraph methods
 
@@ -480,14 +513,16 @@ class TargetNodeList(list):
 # Helper functions (not part of the class definitions)
 
 def edgeIsDynamicLink(edge):
-    # Placeholder function to determine if an edge represents a dynamic link
-    # This needs to be implemented according to the specific annotations
+    """
+    Returns True for edges representing shared libraries linked dynamically at runtime.
+    """
     return edge.annotations.HasAnnotation('dynamic')
 
 def edgeIsDerivation(edge):
-    # Placeholder function to determine if an edge represents a derivation
-    # This needs to be implemented according to the specific annotations
-    return edge.annotations.HasAnnotation('static')
-
-# You can add more helper functions or classes as needed to complete the conversion
+    """
+    Returns True for edges where the target is a derivative work of dependency.
+    """
+    is_dynamic = edge.annotations.HasAnnotation('dynamic')
+    is_toolchain = edge.annotations.HasAnnotation('toolchain')
+    return not is_dynamic and not is_toolchain
 
