@@ -216,6 +216,12 @@ class LicenseConditionSet:
             return self.value == other.value
         return False
 
+    def copy(self):
+        """
+        Creates a copy of the LicenseConditionSet instance.
+        """
+        return LicenseConditionSet(self.value)
+
     def __contains__(self, item):
         if isinstance(item, LicenseCondition):
             return bool(self.value & int(item))

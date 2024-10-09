@@ -1,134 +1,142 @@
-import unittest
-from collections import namedtuple
-from policy_policy import LicenseConditionSet, LicenseCondition, RECOGNIZED_ANNOTATIONS
+# policy_policy_test.py
 
-# Create a namedtuple to represent annotated edges.
-AnnotatedEdge = namedtuple("AnnotatedEdge", ["target", "dep", "annotations"])
+import unittest
+import logging
+
+from policy_policy import (
+    depConditionsPropagatingToTarget,
+    targetConditionsPropagatingToDep,
+    edgeIsDerivation,
+    edgeIsDynamicLink,
+    ImpliesRestricted,
+    NewLicenseConditionSet,
+    RecognizedConditionNames,
+    LicenseConditionSet,
+)
+
+from graph import (
+    LicenseGraph,
+    TargetNode,
+    TargetEdge,
+    TargetEdgeAnnotations,
+)
+
+# Simulate the meta mapping from the Go code
+meta = {
+    'apacheBin.meta_lic': 'notice',
+    'apacheLib.meta_lic': 'notice',
+    'mitBin.meta_lic': 'notice',
+    'mitLib.meta_lic': 'notice',
+    'lgplLib.meta_lic': 'restricted_if_statically_linked',
+    'gplLib.meta_lic': 'restricted',
+    'gplBin.meta_lic': 'restricted',
+    'gplContainer.meta_lic': 'restricted',
+    'gplWithClasspathException.meta_lic': 'restricted',
+    'dependentModule.meta_lic': 'notice',
+    'proprietary.meta_lic': 'proprietary',
+    'by_exception.meta_lic': 'by_exception_only',
+    'mplLib.meta_lic': 'reciprocal',
+    'mplBin.meta_lic': 'reciprocal',
+    # Add more mappings as needed
+}
 
 
 class TestPolicyEdgeConditions(unittest.TestCase):
-    """Test suite for validating policy edge conditions."""
-
-    def setUp(self):
-        """Set up the test environment."""
-        # Define a mapping from target names to metadata information.
-        self.meta = {
-            "apacheBin.meta_lic": "Apache Binary License Metadata",
-            "apacheLib.meta_lic": "Apache Library License Metadata",
-            "mitBin.meta_lic": "MIT Binary License Metadata",
-            "mitLib.meta_lic": "MIT Library License Metadata",
-            "lgplLib.meta_lic": "LGPL Library License Metadata",
-            "gplLib.meta_lic": "GPL Library License Metadata",
-            "gplWithClasspathException.meta_lic": "GPL with Classpath Exception License Metadata",
-            "dependentModule.meta_lic": "Dependent Module License Metadata",
-            "proprietary.meta_lic": "Proprietary License Metadata",
-            "by_exception.meta_lic": "By Exception Only License Metadata",
-            "mplLib.meta_lic": "MPL Library License Metadata",
-            "mplBin.meta_lic": "MPL Binary License Metadata",
-        }
-
     def test_policy_edge_conditions(self):
-        """Test edge conditions as defined in Go test cases."""
-        # Define test cases.
         tests = [
             {
-                "name": "firstparty",
-                "edge": AnnotatedEdge("apacheBin.meta_lic", "apacheLib.meta_lic", ["static"]),
-                "expectedDepActions": [],  # This test case expects no dependency actions.
-                "expectedTargetConditions": [],
+                'name': 'firstparty',
+                'edge': {'target': 'apacheBin.meta_lic', 'dep': 'apacheLib.meta_lic', 'annotations': ['static']},
+                'treatAsAggregate': False,
+                'otherCondition': '',
+                'expectedDepActions': [],
+                'expectedTargetConditions': [],
             },
             {
-                "name": "notice",
-                "edge": AnnotatedEdge("mitBin.meta_lic", "mitLib.meta_lic", ["static"]),
-                "expectedDepActions": [],  # This test case expects no dependency actions.
-                "expectedTargetConditions": [],
+                'name': 'notice',
+                'edge': {'target': 'mitBin.meta_lic', 'dep': 'mitLib.meta_lic', 'annotations': ['static']},
+                'treatAsAggregate': False,
+                'otherCondition': '',
+                'expectedDepActions': [],
+                'expectedTargetConditions': [],
             },
             {
-                "name": "fponlgpl",
-                "edge": AnnotatedEdge("apacheBin.meta_lic", "lgplLib.meta_lic", ["static"]),
-                "expectedDepActions": [
-                    "apacheBin.meta_lic:lgplLib.meta_lic:restricted_if_statically_linked",
-                    "lgplLib.meta_lic:lgplLib.meta_lic:restricted_if_statically_linked",
+                'name': 'fponlgpl',
+                'edge': {'target': 'apacheBin.meta_lic', 'dep': 'lgplLib.meta_lic', 'annotations': ['static']},
+                'treatAsAggregate': False,
+                'otherCondition': '',
+                'expectedDepActions': [
+                    'apacheBin.meta_lic:lgplLib.meta_lic:restricted_if_statically_linked',
+                    'lgplLib.meta_lic:lgplLib.meta_lic:restricted_if_statically_linked',
                 ],
-                "expectedTargetConditions": [],  # No target conditions expected for this case.
+                'expectedTargetConditions': [],
             },
-            # Additional test cases can be added here...
+            # Include all other test cases following the same structure...
         ]
-
-        # Run through each test case.
         for tt in tests:
-            with self.subTest(tt["name"]):
-                edge = tt["edge"]
-
-                # Create a simulated LicenseConditionSet based on the test case conditions.
-                dep_conditions = LicenseConditionSet()
-
-                # Skip adding conditions for 'firstparty' and 'notice' test cases if no conditions are expected.
-                if tt["name"] not in ["firstparty", "notice"]:
-                    for annotation in edge.annotations:
-                        if annotation in RECOGNIZED_ANNOTATIONS:
-                            # Use WEAKLY_RESTRICTED for `fponlgpl` test case to match `restricted_if_statically_linked`.
-                            if tt["name"] == "fponlgpl" and annotation == "static":
-                                dep_conditions.add(LicenseCondition.WEAKLY_RESTRICTED)
-                            elif annotation == "static":
-                                dep_conditions.add(LicenseCondition.RESTRICTED)
-                            elif annotation == "dynamic":
-                                dep_conditions.add(LicenseCondition.WEAKLY_RESTRICTED)
-
-                # Print diagnostic information for better understanding.
-                print(f"Running test case: {tt['name']}")
-                print(f"Edge annotations: {edge.annotations}")
-                print(f"Initial dep_conditions: {dep_conditions}")
-
-                # Mock expected dependency actions and conditions propagation.
-                actual_dep_actions = self.get_expected_dep_actions(edge, dep_conditions)
-                print(f"Expected Dep Actions: {tt['expectedDepActions']}")
-                print(f"Actual Dep Actions: {actual_dep_actions}")
-
-                # Check if the actual dependency actions match the expected ones.
-                self.assertEqual(
-                    actual_dep_actions, tt["expectedDepActions"],
-                    f"Unexpected dep actions for {tt['name']}: got {actual_dep_actions}, expected {tt['expectedDepActions']}"
-                )
-
-                # Mock expected target conditions.
-                actual_target_conditions = self.get_expected_target_conditions(edge, dep_conditions, tt["expectedTargetConditions"])
-                print(f"Expected Target Conditions: {tt['expectedTargetConditions']}")
-                print(f"Actual Target Conditions: {actual_target_conditions}")
-
-                # Check if the actual target conditions match the expected ones.
-                self.assertEqual(
-                    actual_target_conditions, tt["expectedTargetConditions"],
-                    f"Unexpected target conditions for {tt['name']}: got {actual_target_conditions}, expected {tt['expectedTargetConditions']}"
-                )
-
-    def get_expected_dep_actions(self, edge, dep_conditions):
-        """Simulate the calculation of dependency actions based on conditions."""
-        # For demonstration, return the condition names associated with the dependency.
-        dep_actions = []
-        # For the fponlgpl case, ensure we include actions for both the target and dependency.
-        if dep_conditions.contains(LicenseCondition.RESTRICTED):
-            dep_actions.append(f"{edge.target}:{edge.dep}:restricted")
-        if dep_conditions.contains(LicenseCondition.WEAKLY_RESTRICTED):
-            dep_actions.append(f"{edge.target}:{edge.dep}:restricted_if_statically_linked")
-
-            # Add a second entry for the dependency itself to match the expected output.
-            if edge.dep == "lgplLib.meta_lic":
-                dep_actions.append(f"{edge.dep}:{edge.dep}:restricted_if_statically_linked")
-
-        return dep_actions
-
-    def get_expected_target_conditions(self, edge, dep_conditions, expected_conditions):
-        """Simulate the propagation of target conditions."""
-        # For demonstration, return the conditions set at the target based on dependency actions.
-        target_conditions = []
-        # Only add conditions if they are expected in the test case.
-        if dep_conditions.contains(LicenseCondition.RESTRICTED) and "restricted" in expected_conditions:
-            target_conditions.append(f"{edge.target}:restricted")
-        if dep_conditions.contains(LicenseCondition.WEAKLY_RESTRICTED) and "restricted_if_statically_linked" in expected_conditions:
-            target_conditions.append(f"{edge.target}:restricted_if_statically_linked")
-        return target_conditions
+            with self.subTest(tt['name']):
+                # Simulate reading the license graph
+                lg = LicenseGraph()
+                # Create TargetNodes for target and dependency
+                target_node = TargetNode(tt['edge']['target'], proto={})
+                dep_node = TargetNode(tt['edge']['dep'], proto={})
+                # Assign license conditions based on the meta mapping
+                target_condition_name = meta.get(tt['edge']['target'], 'notice')
+                dep_condition_name = meta.get(tt['edge']['dep'], 'notice')
+                target_condition = RecognizedConditionNames.get(target_condition_name)
+                dep_condition = RecognizedConditionNames.get(dep_condition_name)
+                target_node.licenseConditions = NewLicenseConditionSet(target_condition)
+                dep_node.licenseConditions = NewLicenseConditionSet(dep_condition)
+                # Create an edge between target and dependency
+                annotations = tt['edge']['annotations']
+                edge_annotations = TargetEdgeAnnotations(annotations)
+                edge = TargetEdge(target_node, dep_node, edge_annotations)
+                lg.add_edge(edge)
+                # Simulate other conditions if any
+                otherTarget = ''
+                otn = None
+                if tt['otherCondition']:
+                    fields = tt['otherCondition'].split(':')
+                    otherTarget = fields[0]
+                    otherConditionName = fields[1]
+                    otn = TargetNode(otherTarget, proto={})
+                    other_condition = RecognizedConditionNames.get(otherConditionName)
+                    otn.licenseConditions = NewLicenseConditionSet(other_condition)
+                    lg.targets[otherTarget] = otn
+                # Simulate depConditionsPropagatingToTarget
+                if tt['expectedDepActions'] is not None:
+                    depConditions = dep_node.LicenseConditions()
+                    if otherTarget:
+                        # Simulate a sub-dependency's condition having already propagated up to dep
+                        depConditions |= otn.LicenseConditions()
+                    logging.info(f"Calculating target actions for edge={edge}, dep conditions={depConditions}, treatAsAggregate={tt['treatAsAggregate']}")
+                    csActual = depConditionsPropagatingToTarget(lg, edge, depConditions, tt['treatAsAggregate'])
+                    logging.info(f"Calculated target conditions: {csActual}")
+                    csExpected = NewLicenseConditionSet()
+                    for triple in tt['expectedDepActions']:
+                        fields = triple.split(':')
+                        expectedConditions = NewLicenseConditionSet()
+                        for cname in fields[2:]:
+                            condition_name = RecognizedConditionNames.get(cname)
+                            expectedConditions |= NewLicenseConditionSet(condition_name)
+                        csExpected |= expectedConditions
+                    logging.info(f"Expected target conditions: {csExpected}")
+                    self.assertEqual(csActual, csExpected, f"Unexpected license conditions: got {csActual}, want {csExpected}")
+                # Simulate targetConditionsPropagatingToDep
+                if tt['expectedTargetConditions'] is not None:
+                    targetConditions = target_node.LicenseConditions()
+                    if otherTarget:
+                        targetConditions |= otn.LicenseConditions()
+                    logging.info(f"Calculating dep conditions for edge={edge}, target conditions={targetConditions.Names()}, treatAsAggregate={tt['treatAsAggregate']}")
+                    cs = targetConditionsPropagatingToDep(lg, edge, targetConditions, tt['treatAsAggregate'], lambda tn: tn.LicenseConditions())
+                    logging.info(f"Calculated dep conditions: {cs.Names()}")
+                    actual = cs.Names()
+                    expected = [cond.split(':')[1] for cond in tt['expectedTargetConditions']]
+                    actual.sort()
+                    expected.sort()
+                    self.assertEqual(actual, expected, f"Unexpected target conditions: got {actual}, want {expected}")
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     unittest.main()
