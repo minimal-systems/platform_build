@@ -2,7 +2,7 @@
 
 import unittest
 from condition import LicenseCondition, RecognizedConditionNames
-from conditionset import LicenseConditionSet, AllLicenseConditions
+from conditionset import LicenseConditionSet, AllLicenseConditions, NewLicenseConditionSet
 
 class TestConditionSet(unittest.TestCase):
     def test_condition_set(self):
@@ -116,7 +116,7 @@ class TestConditionSet(unittest.TestCase):
                 return [RecognizedConditionNames[name] for name in names]
 
             def populate():
-                testSet = LicenseConditionSet.NewLicenseConditionSet(*toConditions(tt['conditions']))
+                testSet = NewLicenseConditionSet(*toConditions(tt['conditions']))
                 if tt.get('plus') is not None:
                     testSet = testSet.Plus(*toConditions(tt['plus']))
                 if tt.get('minus') is not None:
@@ -124,33 +124,33 @@ class TestConditionSet(unittest.TestCase):
                 return testSet
 
             def populateSet():
-                testSet = LicenseConditionSet.NewLicenseConditionSet(*toConditions(tt['conditions']))
+                testSet = NewLicenseConditionSet(*toConditions(tt['conditions']))
                 if tt.get('plus') is not None:
-                    testSet = testSet.Union(LicenseConditionSet.NewLicenseConditionSet(*toConditions(tt['plus'])))
+                    testSet = testSet.Union(NewLicenseConditionSet(*toConditions(tt['plus'])))
                 if tt.get('minus') is not None:
-                    testSet = testSet.Difference(LicenseConditionSet.NewLicenseConditionSet(*toConditions(tt['minus'])))
+                    testSet = testSet.Difference(NewLicenseConditionSet(*toConditions(tt['minus'])))
                 return testSet
 
             def populatePlusSet():
-                testSet = LicenseConditionSet.NewLicenseConditionSet(*toConditions(tt['conditions']))
+                testSet = NewLicenseConditionSet(*toConditions(tt['conditions']))
                 if tt.get('plus') is not None:
-                    testSet = testSet.Union(LicenseConditionSet.NewLicenseConditionSet(*toConditions(tt['plus'])))
+                    testSet = testSet.Union(NewLicenseConditionSet(*toConditions(tt['plus'])))
                 if tt.get('minus') is not None:
                     testSet = testSet.Minus(*toConditions(tt['minus']))
                 return testSet
 
             def populateMinusSet():
-                testSet = LicenseConditionSet.NewLicenseConditionSet(*toConditions(tt['conditions']))
+                testSet = NewLicenseConditionSet(*toConditions(tt['conditions']))
                 if tt.get('plus') is not None:
                     testSet = testSet.Plus(*toConditions(tt['plus']))
                 if tt.get('minus') is not None:
-                    testSet = testSet.Difference(LicenseConditionSet.NewLicenseConditionSet(*toConditions(tt['minus'])))
+                    testSet = testSet.Difference(NewLicenseConditionSet(*toConditions(tt['minus'])))
                 return testSet
 
             def checkMatching(cs):
                 for data, expectedNames in tt['matchingAny'].items():
                     expectedConditions = toConditions(expectedNames)
-                    expected = LicenseConditionSet.NewLicenseConditionSet(*expectedConditions)
+                    expected = NewLicenseConditionSet(*expectedConditions)
                     data_conditions = toConditions(data.split('|'))
                     actual = cs.MatchingAny(*data_conditions)
                     actualNames = actual.Names()
@@ -171,7 +171,7 @@ class TestConditionSet(unittest.TestCase):
 
             def checkExpected(actual):
                 expectedConditions = toConditions(tt['expected'])
-                expected = LicenseConditionSet.NewLicenseConditionSet(*expectedConditions)
+                expected = NewLicenseConditionSet(*expectedConditions)
                 actualNames = actual.Names()
 
                 self.assertEqual(actual, expected, f"checkExpected: got {actual}, want {expected}")
