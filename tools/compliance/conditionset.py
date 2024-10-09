@@ -1,6 +1,18 @@
 # conditionset.py
 
-from condition import LicenseCondition, RecognizedConditionNames
+from condition import (
+    LicenseCondition,
+    RecognizedConditionNames,
+    UnencumberedCondition,
+    PermissiveCondition,
+    NoticeCondition,
+    ReciprocalCondition,
+    RestrictedCondition,
+    WeaklyRestrictedCondition,
+    ProprietaryCondition,
+    ByExceptionOnlyCondition,
+    NotAllowedCondition,
+)
 import itertools
 
 class LicenseConditionSet:
@@ -9,91 +21,140 @@ class LicenseConditionSet:
     def __init__(self, *conditions):
         self.value = 0
         for condition in conditions:
-            self.value |= condition.value if isinstance(condition, LicenseCondition) else condition
+            if isinstance(condition, LicenseConditionSet):
+                self.value |= condition.value
+            elif isinstance(condition, LicenseCondition):
+                self.value |= condition.value
+            elif isinstance(condition, int):
+                self.value |= condition
+            else:
+                raise ValueError(f"Invalid condition type: {type(condition)}")
 
         # Ensure only valid bits are set
         self.value &= LicenseCondition.LicenseConditionMask
-
-    @staticmethod
-    def NewLicenseConditionSet(*conditions):
-        """Returns a set containing exactly the elements of `conditions`."""
-        return LicenseConditionSet(*conditions)
 
     def Plus(self, *conditions):
         """Returns a new set containing all of the elements of `self` and `conditions`."""
         new_value = self.value
         for condition in conditions:
-            new_value |= condition.value if isinstance(condition, LicenseCondition) else condition
+            if isinstance(condition, LicenseConditionSet):
+                new_value |= condition.value
+            elif isinstance(condition, LicenseCondition):
+                new_value |= condition.value
+            elif isinstance(condition, int):
+                new_value |= condition
+            else:
+                raise ValueError(f"Invalid condition type: {type(condition)}")
         return LicenseConditionSet(new_value)
 
     def Union(self, *others):
         """Returns a new set containing all of the elements of `self` and all of the elements of the `other` sets."""
         new_value = self.value
         for other in others:
-            new_value |= other.value
+            if isinstance(other, LicenseConditionSet):
+                new_value |= other.value
+            else:
+                raise ValueError(f"Invalid condition type: {type(other)}")
         return LicenseConditionSet(new_value)
 
     def MatchingAny(self, *conditions):
         """Returns the subset of `self` equal to any of the `conditions`."""
         result_value = 0
         for condition in conditions:
-            result_value |= self.value & condition.value
+            if isinstance(condition, LicenseCondition):
+                result_value |= self.value & condition.value
+            elif isinstance(condition, int):
+                result_value |= self.value & condition
+            else:
+                raise ValueError(f"Invalid condition type: {type(condition)}")
         return LicenseConditionSet(result_value)
 
     def MatchingAnySet(self, *others):
         """Returns the subset of `self` that are members of any of the `other` sets."""
         result_value = 0
         for other in others:
-            result_value |= self.value & other.value
+            if isinstance(other, LicenseConditionSet):
+                result_value |= self.value & other.value
+            else:
+                raise ValueError(f"Invalid condition type: {type(other)}")
         return LicenseConditionSet(result_value)
 
     def HasAny(self, *conditions):
         """Returns True when `self` contains at least one of the `conditions`."""
         for condition in conditions:
-            if self.value & condition.value:
-                return True
+            if isinstance(condition, LicenseCondition):
+                if self.value & condition.value:
+                    return True
+            elif isinstance(condition, int):
+                if self.value & condition:
+                    return True
+            else:
+                raise ValueError(f"Invalid condition type: {type(condition)}")
         return False
 
     def MatchesAnySet(self, *others):
         """Returns True when `self` has a non-empty intersection with at least one of the `other` condition sets."""
         for other in others:
-            if self.value & other.value:
-                return True
+            if isinstance(other, LicenseConditionSet):
+                if self.value & other.value:
+                    return True
+            else:
+                raise ValueError(f"Invalid condition type: {type(other)}")
         return False
 
     def HasAll(self, *conditions):
         """Returns True when `self` contains every one of the `conditions`."""
         for condition in conditions:
-            if not (self.value & condition.value):
-                return False
+            if isinstance(condition, LicenseCondition):
+                if not (self.value & condition.value):
+                    return False
+            elif isinstance(condition, int):
+                if not (self.value & condition):
+                    return False
+            else:
+                raise ValueError(f"Invalid condition type: {type(condition)}")
         return True
 
     def MatchesEverySet(self, *others):
         """Returns True when `self` has a non-empty intersection with each of the `other` condition sets."""
         for other in others:
-            if not (self.value & other.value):
-                return False
-        return True
+            if isinstance(other, LicenseConditionSet):
+                if not (self.value & other.value):
+                    return False
+            else:
+                raise ValueError(f"Invalid condition type: {type(other)}")
+        return False
 
     def Intersection(self, *others):
         """Returns the subset of `self` that are members of every `other` set."""
         result_value = self.value
         for other in others:
-            result_value &= other.value
+            if isinstance(other, LicenseConditionSet):
+                result_value &= other.value
+            else:
+                raise ValueError(f"Invalid condition type: {type(other)}")
         return LicenseConditionSet(result_value)
 
     def Minus(self, *conditions):
         """Returns the subset of `self` that are not equal to any `conditions`."""
         result_value = self.value
         for condition in conditions:
-            result_value &= ~condition.value
+            if isinstance(condition, LicenseCondition):
+                result_value &= ~condition.value
+            elif isinstance(condition, int):
+                result_value &= ~condition
+            else:
+                raise ValueError(f"Invalid condition type: {type(condition)}")
         return LicenseConditionSet(result_value)
 
     def Difference(self, *others):
         """Returns the subset of `self` that are not members of any `other` set."""
         result_value = self.value
         for other in others:
-            result_value &= ~other.value
+            if isinstance(other, LicenseConditionSet):
+                result_value &= ~other.value
+            else:
+                raise ValueError(f"Invalid condition type: {type(other)}")
         return LicenseConditionSet(result_value)
 
     def Len(self):
@@ -125,6 +186,8 @@ class LicenseConditionSet:
             return LicenseConditionSet(self.value | other.value)
         elif isinstance(other, LicenseCondition):
             return LicenseConditionSet(self.value | other.value)
+        elif isinstance(other, int):
+            return LicenseConditionSet(self.value | other)
         else:
             return NotImplemented
 
@@ -133,6 +196,8 @@ class LicenseConditionSet:
             return LicenseConditionSet(self.value & other.value)
         elif isinstance(other, LicenseCondition):
             return LicenseConditionSet(self.value & other.value)
+        elif isinstance(other, int):
+            return LicenseConditionSet(self.value & other)
         else:
             return NotImplemented
 
@@ -141,6 +206,8 @@ class LicenseConditionSet:
             return LicenseConditionSet(self.value & ~other.value)
         elif isinstance(other, LicenseCondition):
             return LicenseConditionSet(self.value & ~other.value)
+        elif isinstance(other, int):
+            return LicenseConditionSet(self.value & ~other)
         else:
             return NotImplemented
 
@@ -152,24 +219,32 @@ class LicenseConditionSet:
     def __contains__(self, item):
         if isinstance(item, LicenseCondition):
             return bool(self.value & item.value)
-        return False
+        elif isinstance(item, int):
+            return bool(self.value & item)
+        else:
+            return False
+
+# Module-level function to create a new LicenseConditionSet
+def NewLicenseConditionSet(*conditions):
+    """Returns a set containing exactly the elements of `conditions`."""
+    return LicenseConditionSet(*conditions)
 
 # AllLicenseConditions is the set of all recognized license conditions.
 AllLicenseConditions = LicenseConditionSet(
-    LicenseCondition.UnencumberedCondition,
-    LicenseCondition.PermissiveCondition,
-    LicenseCondition.NoticeCondition,
-    LicenseCondition.ReciprocalCondition,
-    LicenseCondition.RestrictedCondition,
-    LicenseCondition.WeaklyRestrictedCondition,
-    LicenseCondition.ProprietaryCondition,
-    LicenseCondition.ByExceptionOnlyCondition,
-    LicenseCondition.NotAllowedCondition,
+    UnencumberedCondition,
+    PermissiveCondition,
+    NoticeCondition,
+    ReciprocalCondition,
+    RestrictedCondition,
+    WeaklyRestrictedCondition,
+    ProprietaryCondition,
+    ByExceptionOnlyCondition,
+    NotAllowedCondition,
 )
 
 # Example usage of ImpliesShared from condition.py
 ImpliesShared = LicenseConditionSet(
-    LicenseCondition.ReciprocalCondition,
-    LicenseCondition.RestrictedCondition,
-    LicenseCondition.WeaklyRestrictedCondition,
+    ReciprocalCondition,
+    RestrictedCondition,
+    WeaklyRestrictedCondition,
 )
