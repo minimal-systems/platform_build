@@ -24,14 +24,14 @@ class LicenseConditionSet:
             if isinstance(condition, LicenseConditionSet):
                 self.value |= condition.value
             elif isinstance(condition, LicenseCondition):
-                self.value |= condition.value
+                self.value |= int(condition)
             elif isinstance(condition, int):
                 self.value |= condition
             else:
                 raise ValueError(f"Invalid condition type: {type(condition)}")
 
         # Ensure only valid bits are set
-        self.value &= LicenseCondition.LicenseConditionMask
+        self.value &= int(LicenseCondition.LicenseConditionMask)
 
     def Plus(self, *conditions):
         """Returns a new set containing all of the elements of `self` and `conditions`."""
@@ -40,7 +40,7 @@ class LicenseConditionSet:
             if isinstance(condition, LicenseConditionSet):
                 new_value |= condition.value
             elif isinstance(condition, LicenseCondition):
-                new_value |= condition.value
+                new_value |= int(condition)
             elif isinstance(condition, int):
                 new_value |= condition
             else:
@@ -62,7 +62,7 @@ class LicenseConditionSet:
         result_value = 0
         for condition in conditions:
             if isinstance(condition, LicenseCondition):
-                result_value |= self.value & condition.value
+                result_value |= self.value & int(condition)
             elif isinstance(condition, int):
                 result_value |= self.value & condition
             else:
@@ -83,7 +83,7 @@ class LicenseConditionSet:
         """Returns True when `self` contains at least one of the `conditions`."""
         for condition in conditions:
             if isinstance(condition, LicenseCondition):
-                if self.value & condition.value:
+                if self.value & int(condition):
                     return True
             elif isinstance(condition, int):
                 if self.value & condition:
@@ -106,7 +106,7 @@ class LicenseConditionSet:
         """Returns True when `self` contains every one of the `conditions`."""
         for condition in conditions:
             if isinstance(condition, LicenseCondition):
-                if not (self.value & condition.value):
+                if not (self.value & int(condition)):
                     return False
             elif isinstance(condition, int):
                 if not (self.value & condition):
@@ -123,7 +123,7 @@ class LicenseConditionSet:
                     return False
             else:
                 raise ValueError(f"Invalid condition type: {type(other)}")
-        return False
+        return True
 
     def Intersection(self, *others):
         """Returns the subset of `self` that are members of every `other` set."""
@@ -140,7 +140,7 @@ class LicenseConditionSet:
         result_value = self.value
         for condition in conditions:
             if isinstance(condition, LicenseCondition):
-                result_value &= ~condition.value
+                result_value &= ~int(condition)
             elif isinstance(condition, int):
                 result_value &= ~condition
             else:
@@ -163,7 +163,7 @@ class LicenseConditionSet:
 
     def AsList(self):
         """Returns a list of the license conditions in the set."""
-        return [condition for condition in LicenseCondition if self.value & condition.value]
+        return [condition for condition in LicenseCondition if self.value & int(condition)]
 
     def Names(self):
         """Returns a list of the names of the license conditions in the set."""
@@ -185,7 +185,7 @@ class LicenseConditionSet:
         if isinstance(other, LicenseConditionSet):
             return LicenseConditionSet(self.value | other.value)
         elif isinstance(other, LicenseCondition):
-            return LicenseConditionSet(self.value | other.value)
+            return LicenseConditionSet(self.value | int(other))
         elif isinstance(other, int):
             return LicenseConditionSet(self.value | other)
         else:
@@ -195,7 +195,7 @@ class LicenseConditionSet:
         if isinstance(other, LicenseConditionSet):
             return LicenseConditionSet(self.value & other.value)
         elif isinstance(other, LicenseCondition):
-            return LicenseConditionSet(self.value & other.value)
+            return LicenseConditionSet(self.value & int(other))
         elif isinstance(other, int):
             return LicenseConditionSet(self.value & other)
         else:
@@ -205,7 +205,7 @@ class LicenseConditionSet:
         if isinstance(other, LicenseConditionSet):
             return LicenseConditionSet(self.value & ~other.value)
         elif isinstance(other, LicenseCondition):
-            return LicenseConditionSet(self.value & ~other.value)
+            return LicenseConditionSet(self.value & ~int(other))
         elif isinstance(other, int):
             return LicenseConditionSet(self.value & ~other)
         else:
@@ -218,7 +218,7 @@ class LicenseConditionSet:
 
     def __contains__(self, item):
         if isinstance(item, LicenseCondition):
-            return bool(self.value & item.value)
+            return bool(self.value & int(item))
         elif isinstance(item, int):
             return bool(self.value & item)
         else:
