@@ -2343,6 +2343,37 @@ def build_license_metadata(all_non_modules: dict,
     print(f"Built {len(built_metadata_files)} 'meta_lic' files.")
     return built_metadata_files
 
+def find_idf_prefix(value1: str, value2: str) -> str:
+    """
+    Returns the correct _idfPrefix in lowercase based on the given rules:
+      1. If value1 is 'HOST_CROSS', return 'host_cross'.
+      2. If value1 is empty, return 'target'.
+      3. If value2 is not empty, return 'host_cross'.
+      4. Otherwise, return 'host'.
+
+    Args:
+        value1 (str): The first input value to check.
+        value2 (str): The second input value to check.
+
+    Returns:
+        str: The determined prefix based on the rules in lowercase.
+    """
+
+    # Check if value1 matches 'HOST_CROSS'
+    if value1.strip().lower() == "host_cross":
+        return "host_cross"
+
+    # If value1 is empty, return 'target'
+    if not value1.strip():
+        return "target"
+
+    # If value2 is not empty, return 'host_cross'
+    if value2.strip():
+        return "host_cross"
+
+    # Default case, return 'host'
+    return "host"
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
