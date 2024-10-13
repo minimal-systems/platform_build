@@ -8,7 +8,8 @@ from definitions import (
     copied_target_license_metadata_rule,
     _copied_target_license_metadata_rule,
     build_all_license_metadata,
-    build_license_metadata
+    build_license_metadata,
+    find_idf_prefix
 )
 import os
 from colorama import Fore, Style, init
@@ -255,6 +256,12 @@ def run_build_license_metadata_test(out_dir: str):
         print(f"❌ TypeError occurred: {e}")
 
 
+def run_idf_prefix_test():
+    print(find_idf_prefix("", ""))  # Output: target
+    print(find_idf_prefix("HOST_CROSS", ""))  # Output: host_cross
+    print(find_idf_prefix("something", "non_empty"))  # Output: host_cross
+    print(find_idf_prefix("something", ""))  # Output: host
+
 if __name__ == "__main__":
     run_copied_target_license_metadata_test()
     run_license_metadata_test()
@@ -262,5 +269,6 @@ if __name__ == "__main__":
     run_record_missing_dependencies_test()
     run_build_all_license_metadata_test(out_dir)
     run_build_license_metadata_test(out_dir)
+    run_idf_prefix_test()
 
     print(f"\n{Fore.CYAN}All test cases executed successfully! {PROGRESS_EMOJIS[-1]}{Style.RESET_ALL}")
