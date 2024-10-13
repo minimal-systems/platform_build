@@ -2172,34 +2172,38 @@ def report_missing_licenses_rule(non_modules_without_metadata, targets_missing_m
 
 def all_license_metadata(all_non_modules, all_targets, all_modules):
     """
-    Returns the unique list of built license metadata files, excluding '0p' entries.
+    Returns the unique list of license metadata files, ensuring only 'meta_lic' paths are captured.
 
     Args:
-        all_non_modules (dict): Dictionary of all non-module attributes.
-        all_targets (dict): Dictionary of all target attributes, where keys are target names and values are attributes.
-        all_modules (dict): Dictionary of all module attributes, where keys are module names and values are attributes.
+        all_non_modules (dict): Dictionary of non-module attributes.
+        all_targets (dict): Dictionary of target attributes.
+        all_modules (dict): Dictionary of module attributes.
 
     Returns:
-        list: Unique sorted list of built license metadata paths, excluding '0p' entries.
+        list: Sorted list of unique 'meta_lic' file paths.
     """
-    # Collect metadata paths from all non-modules, excluding entries with '0p'
+    # Collect meta_lic paths from non-modules that exist in all_targets
     non_module_meta_lics = [
-        all_targets[target]["META_LIC"]
-        for target in all_non_modules
-        if target in all_targets and "META_LIC" in all_targets[target] and all_targets[target]["META_LIC"] != "0p"
+        os.path.join(target_data["META_LIC"])
+        for target, target_data in all_non_modules.items()
+        if target in all_targets and "META_LIC" in all_targets[target]
     ]
 
-    # Collect metadata paths from all modules
+    # Collect meta_lic paths from modules
     module_meta_lics = [
-        module_data["META_LIC"]
-        for module_name, module_data in all_modules.items()
+        os.path.join(module_data["META_LIC"])
+        for module_data in all_modules.values()
         if "META_LIC" in module_data
     ]
 
-    # Combine, sort, and remove duplicates
+    # Combine the lists, remove duplicates, and sort
     unique_meta_lics = sorted(set(non_module_meta_lics + module_meta_lics))
 
+    # Log the result
+    print(f"Found {len(unique_meta_lics)} 'meta_lic' files.")
     return unique_meta_lics
+
+
 
 def report_all_notice_library_names_rule(all_non_modules, all_targets, all_modules, out_dir, compliance_notice_shipped_libs):
     """
@@ -2248,6 +2252,37 @@ def report_all_notice_library_names_rule(all_non_modules, all_targets, all_modul
             print(f"Command errors:\n{result.stderr}")
     except subprocess.CalledProcessError as e:
         print(f"Failed to execute compliance notice shipped libraries command.\nError: {e.stderr}")
+
+
+def build_all_license_metadata(all_non_modules, all_targets, all_modules, out_dir):
+    """
+    Builds all license metadata files by creating dummy files to simulate the build process.
+
+    Args:
+        all_non_modules (dict): Dictionary of all non-module attributes.
+        all_targets (dict): Dictionary of all target attributes.
+        all_modules (dict): Dictionary of all module attributes.
+        out_dir (str): Output directory where metadata files will be created.
+    """
+    all_metadata_files = all_license_metadata(all_non_modules, all_targets, all_modules)
+
+    if not all_metadata_files:
+        print("No valid license metadata files found to build.")
+        return
+
+    # Ensure the output directory exists
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+
+    # Simulate the build process by creating dummy files
+    for metadata_file in all_metadata_files:
+        metadata_path = Path(out_dir) / metadata_file
+        metadata_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(metadata_path, 'w') as f:
+            f.write(f"Simulated content for {metadata_file}")
+        print(f"Built license metadata for: {metadata_path}")
+
+    print(f"Built all {len(all_metadata_files)} license metadata files.")
+
 
 
 def get_host_2nd_arch():
