@@ -2201,6 +2201,54 @@ def all_license_metadata(all_non_modules, all_targets, all_modules):
 
     return unique_meta_lics
 
+def report_all_notice_library_names_rule(all_non_modules, all_targets, all_modules, out_dir, compliance_notice_shipped_libs):
+    """
+    Report all library names used in any notice files based on license metadata.
+
+    Args:
+        all_non_modules (dict): Dictionary of all non-module attributes.
+        all_targets (dict): Dictionary of all target attributes.
+        all_modules (dict): Dictionary of all module attributes.
+        out_dir (str): Base output directory for the build.
+        compliance_notice_shipped_libs (str): Command or path to compliance notice shipped libraries executable.
+
+    Returns:
+        None: Reports library names used in notice files and prints results to the console.
+    """
+    # Get the list of all license metadata files using the `all_license_metadata` function
+    all_meta_lic_files = all_license_metadata(all_non_modules, all_targets, all_modules)
+
+    # Define the path for the list file to store all meta_lic file paths
+    common_license_metadata_dir = os.path.join(out_dir, "META", "lic", "COMMON")
+    private_list_file = os.path.join(common_license_metadata_dir, "filelist")
+
+    # Print the number of license metadata files found
+    print(f"Reporting notice library names for at least {len(all_meta_lic_files)} license metadata files")
+
+    # Remove existing list file if it exists
+    if os.path.exists(private_list_file):
+        os.remove(private_list_file)
+
+    # Create directories if they don't exist
+    os.makedirs(os.path.dirname(private_list_file), exist_ok=True)
+
+    # Write all license metadata file paths to the private list file
+    with open(private_list_file, 'w') as file:
+        for meta_lic in all_meta_lic_files:
+            file.write(f'"{meta_lic}"\n')
+
+    # Define the command to run using the list of meta_lic files
+    build_command = f"OUT_DIR={out_dir} {compliance_notice_shipped_libs} @{private_list_file}"
+
+    # Execute the build command and capture the output
+    try:
+        result = subprocess.run(build_command, shell=True, check=True, capture_output=True, text=True)
+        print(f"Command output:\n{result.stdout}")
+        if result.stderr:
+            print(f"Command errors:\n{result.stderr}")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to execute compliance notice shipped libraries command.\nError: {e.stderr}")
+
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
