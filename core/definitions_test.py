@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from envsetup import out_dir, target_product_out
+from envsetup import out_dir, target_product_out, target_out_intermediates
 from definitions import (
     license_metadata_rule,
     non_module_license_metadata_rule,
@@ -9,7 +9,8 @@ from definitions import (
     _copied_target_license_metadata_rule,
     build_all_license_metadata,
     build_license_metadata,
-    find_idf_prefix
+    find_idf_prefix,
+    intermediates_dir_for
 )
 import os
 from colorama import Fore, Style, init
@@ -92,7 +93,7 @@ def setup_targets():
 def setup_paths():
     """Provide build paths and command."""
     build_license_metadata_cmd = "build/soong/compliance/build_license_metadata"
-    intermediates_dir = "out/target/product/generic"
+    intermediates_dir = "out/target/product/generic/obj/PACKAGING"
     out_dir = "out/target/product/generic"
     return build_license_metadata_cmd, intermediates_dir, out_dir
 
@@ -262,6 +263,38 @@ def run_idf_prefix_test():
     print(find_idf_prefix("something", "non_empty"))  # Output: host_cross
     print(find_idf_prefix("something", ""))  # Output: host
 
+def run_intermediates_dir_for_test():
+    """Test the intermediates_dir_for function."""
+    print("Running intermediates_dir_for test...\n")
+
+    # Simulate target_product_out dynamically (replace with actual if needed)
+
+    # Define the expected directory structure
+    expected_dir = os.path.join(target_product_out, "obj", "APPS", "NotePad_intermediates")
+
+    try:
+        # Call the function with the test parameters
+        result = intermediates_dir_for(
+            target_class="APPS",
+            target_name="NotePad",
+            target_type="TARGET",
+            force_common=False,
+            second_arch=False,
+            host_cross_os=False,
+            target_product_out=target_product_out  # Pass the product out directory
+        )
+
+        # Compare the result with the expected directory
+        if result == expected_dir:
+            print(f"✅ Expected directory '{expected_dir}' matches the result.")
+            os.makedirs(result, exist_ok=True)
+        else:
+            print(f"❌ Expected directory '{expected_dir}' but got '{result}'.")
+
+    except ValueError as e:
+        print(f"❌ Test failed with error: {e}")
+
+
 if __name__ == "__main__":
     run_copied_target_license_metadata_test()
     run_license_metadata_test()
@@ -270,5 +303,6 @@ if __name__ == "__main__":
     run_build_all_license_metadata_test(out_dir)
     run_build_license_metadata_test(out_dir)
     run_idf_prefix_test()
+    run_intermediates_dir_for_test()
 
     print(f"\n{Fore.CYAN}All test cases executed successfully! {PROGRESS_EMOJIS[-1]}{Style.RESET_ALL}")
