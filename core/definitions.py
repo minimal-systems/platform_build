@@ -1565,7 +1565,7 @@ def non_module_license_metadata_rule(target, all_non_modules, all_targets,
 
     # Create the argument file directory
     intermediate_dir = os.path.join(out_dir, "intermediates",
-                                    "packaging", "notice",
+                                    "PACKAGING", "notice",
                                     os.path.basename(meta_path), "arguments")
     os.makedirs(os.path.dirname(intermediate_dir), exist_ok=True)
 
@@ -2283,7 +2283,65 @@ def build_all_license_metadata(all_non_modules, all_targets, all_modules, out_di
 
     print(f"Built all {len(all_metadata_files)} license metadata files.")
 
+def build_license_metadata(all_non_modules: dict,
+                           all_targets: dict,
+                           all_modules: dict,
+                           all_copied_targets: dict,
+                           copy_license_metadata_cmd: str,
+                           out_dir: str) -> list:
+    """
+    Builds all license metadata for modules, non-modules, and copied targets.
 
+    Args:
+        all_non_modules (dict): Dictionary of non-module targets.
+        all_targets (dict): Dictionary of all targets with attributes.
+        all_modules (dict): Dictionary of module attributes.
+        all_copied_targets (dict): Dictionary of copied targets.
+        copy_license_metadata_cmd (str): Command for copying license metadata.
+        out_dir (str): Output directory for license metadata.
+
+    Returns:
+        list: List of paths to all built license metadata files.
+    """
+
+    # Collect all built metadata paths
+    built_metadata_files = []
+
+    # Process non-module targets
+    for target_name, target_attributes in all_non_modules.items():
+        # Ensure required arguments are passed correctly to the rule
+        non_module_license_metadata_rule(
+            target_name, all_non_modules, all_targets, copy_license_metadata_cmd, out_dir
+        )
+
+        # Collect 'meta_lic' path if available
+        meta_lic_path = all_targets.get(target_name, {}).get("meta_lic")
+        if meta_lic_path:
+            built_metadata_files.append(meta_lic_path)
+
+    # Process copied targets
+    for target_name, target_attributes in all_copied_targets.items():
+        copied_target_license_metadata_rule(
+            target_name, all_targets, all_copied_targets,
+            copy_license_metadata_cmd, out_dir
+        )
+
+        # Collect 'meta_lic' path if available
+        meta_lic_path = all_targets.get(target_name, {}).get("meta_lic")
+        if meta_lic_path:
+            built_metadata_files.append(meta_lic_path)
+
+    # Process modules
+    for module_name, module_attributes in all_modules.items():
+        license_metadata_rule(module_name, all_modules, all_targets, out_dir)
+
+        # Collect 'meta_lic' path if available
+        meta_lic_path = all_targets.get(module_name, {}).get("meta_lic")
+        if meta_lic_path:
+            built_metadata_files.append(meta_lic_path)
+
+    print(f"Built {len(built_metadata_files)} 'meta_lic' files.")
+    return built_metadata_files
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()

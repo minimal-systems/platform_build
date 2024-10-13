@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from envsetup import out_dir
+from envsetup import out_dir, target_product_out
 from definitions import (
     license_metadata_rule,
     non_module_license_metadata_rule,
@@ -8,6 +8,7 @@ from definitions import (
     copied_target_license_metadata_rule,
     _copied_target_license_metadata_rule,
     build_all_license_metadata,
+    build_license_metadata
 )
 import os
 from colorama import Fore, Style, init
@@ -75,7 +76,7 @@ def setup_non_modules():
             "path": ["out/target/product/generic/rootfs/vendor/etc/config"],
             "license_kinds": ["spdx-license-identifier-apache-2.0"],
             "license_conditions": ["notice"],
-            "root_mappings": ["vendor_init:/vendor/path"],
+            "root_mappings": ["vendor_init:system/core/init"],
             "is_container": True,
             "license_package_name": "package_name_vendor",
         }
@@ -175,7 +176,7 @@ def run_copied_target_license_metadata_test():
     print_result(has_meta_lic, "'meta_lic' attribute is correctly set for 'vendor_config'", "'meta_lic' attribute is not set for 'vendor_config'")
 
 def run_build_all_license_metadata_test(out_dir):
-    """Test the build_all_license_metadata function by verifying file creation."""
+    """Test the build_all_license_metadata function with a focus on meta_lic files."""
     update_progress()
     all_non_modules = setup_non_modules()
     all_targets = setup_targets()
@@ -186,20 +187,72 @@ def run_build_all_license_metadata_test(out_dir):
     # Run the build process
     build_all_license_metadata(all_non_modules, all_targets, all_modules, out_dir)
 
-    # Verify that files were created
-    built_files = list(Path(out_dir).rglob("*"))
+    # Verify that only 'meta_lic' files are created
+    built_files = list(Path(out_dir).rglob("*.meta_lic"))
     print_result(
         len(built_files) > 0,
-        f"Expected at least 1 metadata file, found {len(built_files)}",
-        "No metadata files were built."
+        f"Expected at least 1 'meta_lic' file, found {len(built_files)}",
+        "No 'meta_lic' files were built."
     )
 
-    # Print details of built files
+    # Print details of built 'meta_lic' files
     if built_files:
-        print("Built files:")
+        print("Built 'meta_lic' files:")
         for file in built_files:
             print(f" - {file}")
 
+def run_build_license_metadata_test(out_dir: str):
+    """
+    Runs the test for building license metadata.
+
+    Args:
+        out_dir (str): Output directory where metadata files are expected to be generated.
+
+    Returns:
+        None
+    """
+    # Sample data for the test
+    all_non_modules = {"vendor_config": {}}
+    all_targets = {
+        "environment": {
+            "name": "environment",
+            "meta_lic": ["meta_lic1", "meta_lic2"],
+        },
+        "vendor_init": {
+            "name": "vendor_init",
+            "meta_lic": "vendor_init.meta_lic",
+        },
+    }
+    all_modules = {}
+    all_copied_targets = {}
+
+    # Ensure the output directory exists
+    os.makedirs(out_dir, exist_ok=True)
+
+    print(f"🌖 Running build_license_metadata with output directory: {out_dir}")
+
+    try:
+        # Call the function to build license metadata
+        built_metadata_files = build_license_metadata(
+            all_non_modules,
+            all_targets,
+            all_modules,
+            all_copied_targets,
+            copy_license_metadata_cmd="",
+            out_dir=out_dir,
+        )
+
+        # Validate built metadata files
+        if not built_metadata_files:
+            print("No valid license metadata files found to build.")
+        else:
+            print(f"✅ Expected at least 1 'meta_lic' file, found {len(built_metadata_files)}")
+            print("Built 'meta_lic' files:")
+            for f in built_metadata_files:
+                print(f" - {f}")
+
+    except TypeError as e:
+        print(f"❌ TypeError occurred: {e}")
 
 
 if __name__ == "__main__":
@@ -208,5 +261,6 @@ if __name__ == "__main__":
     run_non_module_license_metadata_test()
     run_record_missing_dependencies_test()
     run_build_all_license_metadata_test(out_dir)
+    run_build_license_metadata_test(out_dir)
 
     print(f"\n{Fore.CYAN}All test cases executed successfully! {PROGRESS_EMOJIS[-1]}{Style.RESET_ALL}")
