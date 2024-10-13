@@ -10,7 +10,8 @@ from definitions import (
     build_all_license_metadata,
     build_license_metadata,
     find_idf_prefix,
-    intermediates_dir_for
+    intermediates_dir_for,
+    local_intermediates_dir
 )
 import os
 from colorama import Fore, Style, init
@@ -294,6 +295,36 @@ def run_intermediates_dir_for_test():
     except ValueError as e:
         print(f"❌ Test failed with error: {e}")
 
+def run_local_intermediates_dir_test():
+    """Test the local_intermediates_dir function."""
+    print("Running local_intermediates_dir test...\n")
+
+    # Simulate target_product_out dynamically (replace with actual if needed)
+    target_product_out = os.path.join(os.getcwd(), "out/target/product/generic")
+
+    # Define the expected directory structure
+    expected_dir = os.path.join(target_product_out, "obj", "APPS", "NotePad_intermediates")
+
+    try:
+        # Call the function with the test parameters
+        result = local_intermediates_dir(
+            local_module_class="APPS",
+            local_module="NotePad",
+            local_is_host_module=False,  # Treat it as a target module
+            force_common=False,
+            second_arch=False,
+            host_cross_os=False,
+            target_product_out=target_product_out  # Pass the product output directory
+        )
+
+        # Compare the result with the expected directory
+        if result == expected_dir:
+            print(f"✅ Expected directory '{expected_dir}' matches the result.")
+        else:
+            print(f"❌ Expected directory '{expected_dir}' but got '{result}'.")
+
+    except ValueError as e:
+        print(f"❌ Test failed with error: {e}")
 
 if __name__ == "__main__":
     run_copied_target_license_metadata_test()
@@ -304,5 +335,6 @@ if __name__ == "__main__":
     run_build_license_metadata_test(out_dir)
     run_idf_prefix_test()
     run_intermediates_dir_for_test()
+    run_local_intermediates_dir_test()
 
     print(f"\n{Fore.CYAN}All test cases executed successfully! {PROGRESS_EMOJIS[-1]}{Style.RESET_ALL}")
