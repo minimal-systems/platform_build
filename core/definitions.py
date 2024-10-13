@@ -2343,36 +2343,74 @@ def build_license_metadata(all_non_modules: dict,
     print(f"Built {len(built_metadata_files)} 'meta_lic' files.")
     return built_metadata_files
 
-def find_idf_prefix(value1: str, value2: str) -> str:
+def find_idf_prefix(target_type, host_cross_os):
     """
-    Returns the correct _idfPrefix in lowercase based on the given rules:
-      1. If value1 is 'HOST_CROSS', return 'host_cross'.
-      2. If value1 is empty, return 'target'.
-      3. If value2 is not empty, return 'host_cross'.
-      4. Otherwise, return 'host'.
+    Determine the prefix for the intermediate directory based on the target type and host cross OS.
 
     Args:
-        value1 (str): The first input value to check.
-        value2 (str): The second input value to check.
+        target_type (str): Target type (e.g., HOST, HOST_CROSS, TARGET).
+        host_cross_os (bool): Indicates if the target is for host cross OS.
 
     Returns:
-        str: The determined prefix based on the rules in lowercase.
+        str: Prefix for the intermediate directory.
     """
+    if host_cross_os:
+        return f"host_cross_{target_type.lower()}"
+    return target_type.lower() if target_type else "target"
 
-    # Check if value1 matches 'HOST_CROSS'
-    if value1.strip().lower() == "host_cross":
-        return "host_cross"
+def intermediates_dir_for(target_class, target_name, target_type=None,
+                          force_common=False, second_arch=False, host_cross_os=False,
+                          target_product_out=None):
+    """
+    Calculate the intermediate directory for a given target.
 
-    # If value1 is empty, return 'target'
-    if not value1.strip():
-        return "target"
+    Args:
+        target_class (str): Class of the target (e.g., "APPS").
+        target_name (str): Name of the target (e.g., "NotePad").
+        target_type (str): Type of the target (e.g., "HOST", "TARGET"). Default is None.
+        force_common (bool): If True, force the intermediate directory to be COMMON.
+        second_arch (bool): If True, use the 2nd architecture prefix.
+        host_cross_os (bool): If True, force intermediates to be for host cross OS.
+        target_product_out (str): Optional path to the product output directory.
 
-    # If value2 is not empty, return 'host_cross'
-    if value2.strip():
-        return "host_cross"
+    Returns:
+        str: The calculated path to the intermediate directory.
+    Raises:
+        ValueError: If target class or target name is not provided.
+    """
+    if not target_class:
+        raise ValueError("Class not defined in call to intermediates_dir_for.")
+    if not target_name:
+        raise ValueError("Name not defined in call to intermediates_dir_for.")
 
-    # Default case, return 'host'
-    return "host"
+    # Use the provided target_product_out or default to the current working directory
+    base_out_dir = target_product_out or os.getcwd()
+
+    # Calculate the prefix based on the target type and host cross OS
+    prefix = find_idf_prefix(target_type, host_cross_os)
+
+    # Determine the 2nd arch prefix if applicable
+    second_arch_prefix = "2nd_arch_" if second_arch else ""
+
+    # Define module class types
+    common_module_classes = ["TARGET_NOTICE_FILES", "HOST_NOTICE_FILES"]
+    per_arch_module_classes = [
+        "SHARED_LIBRARIES", "STATIC_LIBRARIES", "EXECUTABLES", "GYP",
+        "NATIVE_TESTS", "HEADER_LIBRARIES", "RLIB_LIBRARIES", "DYLIB_LIBRARIES"
+    ]
+
+    # Calculate the base intermediate directory
+    if force_common or f"{prefix}_{target_class}" in common_module_classes:
+        intermediate_base = f"{prefix}_out_common_intermediates"
+    elif target_class in per_arch_module_classes:
+        intermediate_base = f"{second_arch_prefix}{prefix}_out_intermediates"
+    else:
+        intermediate_base = f"{prefix}_out_intermediates"
+
+    # Join paths correctly and return the final directory
+    return os.path.join(base_out_dir, "obj", target_class, f"{target_name}_intermediates")
+
+
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
