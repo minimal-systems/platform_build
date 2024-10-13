@@ -2358,6 +2358,8 @@ def find_idf_prefix(target_type, host_cross_os):
         return f"host_cross_{target_type.lower()}"
     return target_type.lower() if target_type else "target"
 
+import os
+
 def intermediates_dir_for(target_class, target_name, target_type=None,
                           force_common=False, second_arch=False, host_cross_os=False,
                           target_product_out=None):
@@ -2383,10 +2385,10 @@ def intermediates_dir_for(target_class, target_name, target_type=None,
     if not target_name:
         raise ValueError("Name not defined in call to intermediates_dir_for.")
 
-    # Use the provided target_product_out or default to the current working directory
+    # Use the provided product output directory or default to the current working directory
     base_out_dir = target_product_out or os.getcwd()
 
-    # Calculate the prefix based on the target type and host cross OS
+    # Calculate the prefix based on target type and host cross OS
     prefix = find_idf_prefix(target_type, host_cross_os)
 
     # Determine the 2nd arch prefix if applicable
@@ -2410,7 +2412,44 @@ def intermediates_dir_for(target_class, target_name, target_type=None,
     # Join paths correctly and return the final directory
     return os.path.join(base_out_dir, "obj", target_class, f"{target_name}_intermediates")
 
+def local_intermediates_dir(local_module_class, local_module, local_is_host_module=False,
+                            force_common=False, second_arch=False, host_cross_os=False,
+                            target_product_out=None):
+    """
+    Determine the intermediates directory based on the provided module class and name.
 
+    Args:
+        local_module_class (str): Class of the local module (e.g., "APPS").
+        local_module (str): Name of the local module (e.g., "NotePad").
+        local_is_host_module (bool): If True, treat it as a host module.
+        force_common (bool): If True, force the intermediates to be COMMON.
+        second_arch (bool): If True, use the 2nd architecture prefix.
+        host_cross_os (bool): If True, force intermediates to be for the host cross OS.
+        target_product_out (str): Optional path to the product output directory.
+
+    Returns:
+        str: The calculated path to the intermediates directory.
+    Raises:
+        ValueError: If required parameters are not provided.
+    """
+    if not local_module_class:
+        raise ValueError("LOCAL_MODULE_CLASS not defined before call to local_intermediates_dir.")
+    if not local_module:
+        raise ValueError("LOCAL_MODULE not defined before call to local_intermediates_dir.")
+
+    # Determine the target type based on whether it's a host module
+    target_type = "HOST" if local_is_host_module else "TARGET"
+
+    # Call intermediates_dir_for with the resolved parameters
+    return intermediates_dir_for(
+        target_class=local_module_class,
+        target_name=local_module,
+        target_type=target_type,
+        force_common=force_common,
+        second_arch=second_arch,
+        host_cross_os=host_cross_os,
+        target_product_out=target_product_out
+    )
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
