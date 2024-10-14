@@ -113,16 +113,41 @@ def print_target_details(all_targets):
 def run_license_metadata_test():
     """Test the license metadata rule for a module target."""
     progress_bar.display_task("test", "license_metadata_test")
+
+    # Setup modules, targets, and paths
     all_modules = setup_modules()
     all_targets = setup_targets()
     build_license_metadata_cmd, intermediates_dir, out_dir = setup_paths()
 
-    license_metadata_rule("environment", all_modules, all_targets, build_license_metadata_cmd, intermediates_dir, out_dir)
+    # Prepare the argument file directory path for the target
+    target = "environment"
+    argument_file_dir = os.path.join(intermediates_dir, "notice", target)
 
+    # Run the license metadata rule for the target
+    license_metadata_rule(
+        target,
+        all_modules,
+        all_targets,
+        build_license_metadata_cmd,
+        intermediates_dir,
+        out_dir
+    )
+
+    # Print the updated target details
     print_target_details(all_targets)
 
-    print_result(len(all_targets) == 2, "Expected 2 targets to be added for 'environment'", f"Expected 2 targets, but got {len(all_targets)}")
-    print_result("environment" in all_targets, "'environment' is in the target names", "'environment' is not in the target names")
+    # Validate the results with assertions
+    print_result(
+        len(all_targets) == 2,
+        "Expected 2 targets to be added for 'environment'",
+        f"Expected 2 targets, but got {len(all_targets)}"
+    )
+    print_result(
+        "environment" in all_targets,
+        "'environment' is in the target names",
+        "'environment' is not in the target names"
+    )
+
 
 
 def run_non_module_license_metadata_test():
