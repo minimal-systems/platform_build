@@ -2669,6 +2669,23 @@ def module_built_files(modules_list, all_modules):
         built_files.extend(module_info.get("BUILT", []))
     return built_files
 
+def module_installed_files(module_names, all_modules):
+    """
+    Convert a list of module names into the list of files installed for those modules.
+
+    Args:
+        module_names (list): List of module names (e.g., ["coreutils", "networking"]).
+        all_modules (dict): Dictionary containing module attributes, including 'INSTALLED' files.
+
+    Returns:
+        list: List of installed files for the specified modules.
+    """
+    installed_files = []
+    for module in module_names:
+        files = all_modules.get(module, {}).get("INSTALLED", [])
+        installed_files.extend(files)
+    return installed_files
+
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
