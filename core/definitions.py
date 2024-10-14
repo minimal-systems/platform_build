@@ -2748,6 +2748,11 @@ def append_path(base_path: str, leaf_path: str) -> str:
     combined_path = os.path.join(base_path, leaf_path)
     return os.path.normpath(combined_path)
 
+esc_bold = Style.BRIGHT
+esc_warning = Fore.MAGENTA
+esc_error = Fore.RED
+esc_reset = Style.RESET_ALL
+
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
