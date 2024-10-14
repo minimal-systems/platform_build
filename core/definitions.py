@@ -2712,6 +2712,25 @@ def module_target_built_files(module_names, all_modules):
         target_built_files.extend(files)
     return target_built_files
 
+def doc_timestamp_for(doc_module, out_docs):
+    """
+    Evaluates to the timestamp file for a doc module.
+
+    Args:
+        doc_module (str): The name of the documentation module.
+        out_docs (Path): Path to the output directory for documentation.
+
+    Returns:
+        str: The path to the timestamp file for the specified doc module.
+    """
+    if not doc_module:
+        raise ValueError("Doc module name must be provided.")
+
+    # Construct the timestamp file path
+    timestamp_path = out_docs / f"{doc_module}-timestamp"
+    return str(timestamp_path)
+
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:

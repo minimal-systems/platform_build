@@ -644,6 +644,50 @@ def run_module_target_built_files_test():
             f"Expected:\n{format_list(expected_result)}\nBut got:\n{format_list(result_str)}"
         )
 
+def run_doc_timestamp_for_test():
+    """Test the doc_timestamp_for function."""
+    progress_bar.display_task("Running", "doc_timestamp_for_test")
+
+    # Define the output directory for documentation
+    out_docs = target_product_out / "docs"
+    out_docs.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
+
+    try:
+        # Test 1: Valid doc module
+        result = doc_timestamp_for("user_guide", out_docs)
+        expected_result = str(out_docs / "user_guide-timestamp")
+
+        # Generate the timestamp file
+        with open(result, 'w') as f:
+            f.write(time.strftime("%Y-%m-%d %H:%M:%S"))  # Add timestamp content
+
+        print_result(
+            result == expected_result,
+            f"Expected timestamp file '{expected_result}' matches the result.",
+            f"Expected {expected_result}, but got {result}"
+        )
+
+        # Verify if the file was created successfully
+        file_exists = Path(result).exists()
+        print_result(
+            file_exists,
+            f"Timestamp file '{result}' created successfully.",
+            f"Failed to create timestamp file: {result}"
+        )
+
+        # Test 2: Missing doc module name
+        try:
+            doc_timestamp_for("", out_docs)
+        except ValueError as e:
+            print_result(
+                str(e) == "Doc module name must be provided.",
+                "Correctly raised ValueError for missing doc module name.",
+                f"Unexpected error: {e}"
+            )
+
+    except Exception as e:
+        progress_bar.print_log(f"Test failed with error: {e}")
+
 if __name__ == "__main__":
     run_copied_target_license_metadata_test()
     run_license_metadata_test()
@@ -660,4 +704,5 @@ if __name__ == "__main__":
     run_module_built_files_test()
     run_module_installed_files_test()
     run_module_target_built_files_test()
+    run_doc_timestamp_for_test()
     progress_bar.finish()
