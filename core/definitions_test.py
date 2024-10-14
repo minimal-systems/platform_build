@@ -1,6 +1,12 @@
+import os
+import inspect
 from pathlib import Path
 
-from envsetup import out_dir, target_product_out, target_out_intermediates
+from cola.widgets.standard import progress
+from colorama import Fore, Style, init
+from ninja_printer import NinjaStyleTqdm
+import sys
+from envsetup import target_product_out, out_dir
 from definitions import (
     license_metadata_rule,
     non_module_license_metadata_rule,
@@ -13,25 +19,19 @@ from definitions import (
     intermediates_dir_for,
     local_intermediates_dir
 )
-import os
-from colorama import Fore, Style, init
+
 
 # Initialize colorama for cross-platform support
 init(autoreset=True)
 
+TOTAL_TASKS = 10
+progress_bar = NinjaStyleTqdm(TOTAL_TASKS)
+
 # Control printing of detailed information and assertions
-PRINT_CONDITIONS = True
-PROGRESS_EMOJIS = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"]
-
-# Index for tracking progress
-progress_index = 0
-
-
-def update_progress():
-    """Print the current progress using moon phase emojis."""
-    global progress_index
-    print(PROGRESS_EMOJIS[progress_index % len(PROGRESS_EMOJIS)], end=" ", flush=True)
-    progress_index += 1
+PRINT_CONDITIONS = False
+def print_result(condition, success_msg, failure_msg):
+    emoji = "✅" if condition else "❌"
+    progress_bar.print_log(f"{emoji} {Fore.GREEN}{success_msg}" if condition else f"{emoji} {Fore.RED}{failure_msg}")
 
 
 def setup_modules():
@@ -98,31 +98,23 @@ def setup_paths():
     out_dir = "out/target/product/generic"
     return build_license_metadata_cmd, intermediates_dir, out_dir
 
-
-def print_result(condition, success_msg, failure_msg):
-    """Print result based on condition with emojis."""
-    emoji = "✅" if condition else "❌"
-    print(f"{emoji} {Fore.GREEN}{success_msg}{Style.RESET_ALL}" if condition else f"{emoji} {Fore.RED}{failure_msg}{Style.RESET_ALL}")
-
-
 def print_target_details(all_targets):
     """Print details of all targets if printing conditions are enabled."""
     if PRINT_CONDITIONS:
-        print(f"{Fore.CYAN}Updated all_targets:{Style.RESET_ALL}")
+        progress_bar.print_log(f"{Fore.CYAN}Updated all_targets:{Style.RESET_ALL}")
         for target_name, target_data in all_targets.items():
-            print(f"{Fore.CYAN}Target: {target_name}{Style.RESET_ALL}")
+            progress_bar.print_log(f"{Fore.CYAN}Target: {target_name}{Style.RESET_ALL}")
             for key, value in target_data.items():
-                print(f"  {key}: {value}")
+                progress_bar.print_log(f"  {key}: {value}")
 
 
 def run_license_metadata_test():
     """Test the license metadata rule for a module target."""
-    update_progress()
+    progress_bar.display_task("test", "license_metadata_test")
     all_modules = setup_modules()
     all_targets = setup_targets()
     build_license_metadata_cmd, intermediates_dir, out_dir = setup_paths()
 
-    print(f"{Fore.CYAN}Running license metadata rule for 'environment'...\n{Style.RESET_ALL}")
     license_metadata_rule("environment", all_modules, all_targets, build_license_metadata_cmd, intermediates_dir, out_dir)
 
     print_target_details(all_targets)
@@ -133,12 +125,11 @@ def run_license_metadata_test():
 
 def run_non_module_license_metadata_test():
     """Test the license metadata rule for a non-module target."""
-    update_progress()
+    progress_bar.display_task("Running", "non_module_license_metadata_test")
     all_non_modules = setup_non_modules()
     all_targets = setup_targets()
     build_license_metadata_cmd, out_dir = setup_paths()[:2]
 
-    print(f"{Fore.CYAN}Running non-module license metadata rule for 'vendor_config'...\n{Style.RESET_ALL}")
     non_module_license_metadata_rule("vendor_config", all_non_modules, all_targets, build_license_metadata_cmd, out_dir)
 
     print_target_details(all_targets)
@@ -147,30 +138,28 @@ def run_non_module_license_metadata_test():
 
 def run_record_missing_dependencies_test():
     """Test recording missing dependencies for non-module targets."""
-    update_progress()
+    progress_bar.display_task("Running", "record_missing_dependencies_test")
     all_non_modules = setup_non_modules()
     all_targets = setup_modules()
     missing_dependencies = []
 
-    print(f"{Fore.CYAN}Running record missing dependencies for 'vendor_config'...\n{Style.RESET_ALL}")
     record_missing_non_module_dependencies("vendor_config", all_non_modules, all_targets, missing_dependencies)
 
-    print(f"{Fore.CYAN}Missing dependencies:{Style.RESET_ALL}")
+    progress_bar.print_log(f"{Fore.CYAN}Missing dependencies:{Style.RESET_ALL}")
     for dep in missing_dependencies:
-        print(f"  {Fore.RED}{dep}{Style.RESET_ALL}")
+        progress_bar.print_log(f"  {Fore.RED}{dep}{Style.RESET_ALL}")
 
     print_result(len(missing_dependencies) == 1, "Expected 1 missing dependency for 'vendor_config'", f"Expected 1 missing dependency, but got {len(missing_dependencies)}")
 
 
 def run_copied_target_license_metadata_test():
     """Test copied target license metadata rule."""
-    update_progress()
+    progress_bar.display_task("Running", "copied_target_license_metadata_test")
     all_targets = setup_modules()
     all_copied_targets = {"vendor_config": {"sources": ["vendor_init"]}}
     copy_license_metadata_cmd = "build/soong/compliance/copy_license_metadata"
     out_dir = "out/target/product/generic"
 
-    print(f"{Fore.CYAN}Running copied target license metadata rule for 'vendor_config'...\n{Style.RESET_ALL}")
     _copied_target_license_metadata_rule("vendor_config", all_targets, all_copied_targets, copy_license_metadata_cmd, out_dir)
 
     print_target_details(all_targets)
@@ -180,12 +169,11 @@ def run_copied_target_license_metadata_test():
 
 def run_build_all_license_metadata_test(out_dir):
     """Test the build_all_license_metadata function with a focus on meta_lic files."""
-    update_progress()
+    progress_bar.display_task("Running", "build_all_license_metadata_test")
     all_non_modules = setup_non_modules()
     all_targets = setup_targets()
     all_modules = setup_modules()
 
-    print(f"Running build_all_license_metadata with output directory: {out_dir}")
 
     # Run the build process
     build_all_license_metadata(all_non_modules, all_targets, all_modules, out_dir)
@@ -200,7 +188,7 @@ def run_build_all_license_metadata_test(out_dir):
 
     # Print details of built 'meta_lic' files
     if built_files:
-        print("Built 'meta_lic' files:")
+        progress_bar.print_log("Built 'meta_lic' files:")
         for file in built_files:
             print(f" - {file}")
 
@@ -214,6 +202,8 @@ def run_build_license_metadata_test(out_dir: str):
     Returns:
         None
     """
+    progress_bar.display_task("Running", "build_license_metadata_test")
+
     # Sample data for the test
     all_non_modules = {"vendor_config": {}}
     all_targets = {
@@ -232,7 +222,6 @@ def run_build_license_metadata_test(out_dir: str):
     # Ensure the output directory exists
     os.makedirs(out_dir, exist_ok=True)
 
-    print(f"🌖 Running build_license_metadata with output directory: {out_dir}")
 
     try:
         # Call the function to build license metadata
@@ -249,24 +238,24 @@ def run_build_license_metadata_test(out_dir: str):
         if not built_metadata_files:
             print("No valid license metadata files found to build.")
         else:
-            print(f"✅ Expected at least 1 'meta_lic' file, found {len(built_metadata_files)}")
+            print(f"✅ Expected at least 1 'meta_lic' file, found {len(built_metadata_files)} \n")
             print("Built 'meta_lic' files:")
             for f in built_metadata_files:
                 print(f" - {f}")
 
     except TypeError as e:
-        print(f"❌ TypeError occurred: {e}")
+        progress_bar.print_log(f"❌ TypeError occurred: {e}")
 
 
 def run_idf_prefix_test():
-    print(find_idf_prefix("", ""))  # Output: target
-    print(find_idf_prefix("HOST_CROSS", ""))  # Output: host_cross
-    print(find_idf_prefix("something", "non_empty"))  # Output: host_cross
-    print(find_idf_prefix("something", ""))  # Output: host
+    progress_bar.print_log(find_idf_prefix("", ""))  # Output: target
+    progress_bar.print_log(find_idf_prefix("HOST_CROSS", ""))  # Output: host_cross
+    progress_bar.print_log(find_idf_prefix("something", "non_empty"))  # Output: host_cross
+    progress_bar.print_log(find_idf_prefix("something", ""))  # Output: host
 
 def run_intermediates_dir_for_test():
     """Test the intermediates_dir_for function."""
-    print("Running intermediates_dir_for test...\n")
+    progress_bar.display_task("Running", "intermediates_dir_for_test")
 
     # Simulate target_product_out dynamically (replace with actual if needed)
 
@@ -287,17 +276,17 @@ def run_intermediates_dir_for_test():
 
         # Compare the result with the expected directory
         if result == expected_dir:
-            print(f"✅ Expected directory '{expected_dir}' matches the result.")
+            progress_bar.print_log(f"✅ Expected directory '{expected_dir}' matches the result.")
             os.makedirs(result, exist_ok=True)
         else:
-            print(f"❌ Expected directory '{expected_dir}' but got '{result}'.")
+            progress_bar.print_log(f"❌ Expected directory '{expected_dir}' but got '{result}'.")
 
     except ValueError as e:
-        print(f"❌ Test failed with error: {e}")
+        progress_bar.print_log(f"❌ Test failed with error: {e}")
 
 def run_local_intermediates_dir_test():
     """Test the local_intermediates_dir function."""
-    print("Running local_intermediates_dir test...\n")
+    progress_bar.display_task("Running", "local_intermediates_dir_test")
 
     # Simulate target_product_out dynamically (replace with actual if needed)
     target_product_out = os.path.join(os.getcwd(), "out/target/product/generic")
@@ -319,9 +308,9 @@ def run_local_intermediates_dir_test():
 
         # Compare the result with the expected directory
         if result == expected_dir:
-            print(f"✅ Expected directory '{expected_dir}' matches the result.")
+            progress_bar.print_log(f"✅ Expected directory '{expected_dir}' matches the result.")
         else:
-            print(f"❌ Expected directory '{expected_dir}' but got '{result}'.")
+            progress_bar.print_log(f"❌ Expected directory '{expected_dir}' but got '{result}'.")
 
     except ValueError as e:
         print(f"❌ Test failed with error: {e}")
@@ -336,5 +325,4 @@ if __name__ == "__main__":
     run_idf_prefix_test()
     run_intermediates_dir_for_test()
     run_local_intermediates_dir_test()
-
-    print(f"\n{Fore.CYAN}All test cases executed successfully! {PROGRESS_EMOJIS[-1]}{Style.RESET_ALL}")
+    progress_bar.finish()

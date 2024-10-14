@@ -1793,7 +1793,7 @@ def _copied_target_license_metadata_rule(target_name, all_targets,
     build_command = f"OUT_DIR={out_dir} {copy_license_metadata_cmd} "
     build_command += f"@{argument_file} -o {_meta}"
 
-    print(f"Executing: {build_command}")
+    #print(f"Executing: {build_command}")
     # Uncomment to execute the command if needed:
     # subprocess.run(build_command, shell=True, check=True, capture_output=True, text=True)
 
@@ -1804,7 +1804,7 @@ def _copied_target_license_metadata_rule(target_name, all_targets,
         "private_source_metadata": _dep,
         "private_argument_file": argument_file
     })
-    print(f"Updated target metadata for copied target: {target_name}")
+    #print(f"Updated target metadata for copied target: {target_name}")
 
 def declare_license_metadata(
         target, license_kinds, license_conditions, notices, package_name, project_path, all_non_modules, all_targets, out_dir):
@@ -2443,6 +2443,49 @@ def local_intermediates_dir(local_module_class, local_module, local_is_host_modu
     # Call intermediates_dir_for with the resolved parameters
     return intermediates_dir_for(
         target_class=local_module_class,
+        target_name=local_module,
+        target_type=target_type,
+        force_common=force_common,
+        second_arch=second_arch,
+        host_cross_os=host_cross_os,
+        target_product_out=target_product_out
+    )
+
+def local_meta_intermediates_dir(local_module_class, local_module, local_is_host_module=False,
+                                 force_common=False, second_arch=False, host_cross_os=False,
+                                 target_product_out=None):
+    """
+    Calculate the meta intermediates directory for a local module.
+
+    Args:
+        local_module_class (str): Class of the local module (e.g., "APPS").
+        local_module (str): Name of the local module (e.g., "NotePad").
+        local_is_host_module (bool): If True, treat it as a host module.
+        force_common (bool): If True, force the intermediates directory to be COMMON.
+        second_arch (bool): If True, use the 2nd architecture prefix.
+        host_cross_os (bool): If True, force intermediates to be for the host cross OS.
+        target_product_out (str): Optional base directory for the product output.
+
+    Returns:
+        str: The calculated path to the meta intermediates directory.
+
+    Raises:
+        ValueError: If required parameters are not provided.
+    """
+    if not local_module_class:
+        raise ValueError("LOCAL_MODULE_CLASS not defined before call to local_meta_intermediates_dir.")
+    if not local_module:
+        raise ValueError("LOCAL_MODULE not defined before call to local_meta_intermediates_dir.")
+
+    # Prefix the module class with 'META'
+    meta_class = f"META_{local_module_class}"
+
+    # Determine the target type based on the host module flag
+    target_type = "HOST" if local_is_host_module else "TARGET"
+
+    # Call the intermediates_dir_for function with resolved parameters
+    return intermediates_dir_for(
+        target_class=meta_class,
         target_name=local_module,
         target_type=target_type,
         force_common=force_common,
