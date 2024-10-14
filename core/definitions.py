@@ -2570,7 +2570,7 @@ def packaging_dir_for(
     target_class: str,
     target_name: str,
     target_type: str = None,
-    packaging_base: Path = None
+    target_product_out: Path = None
 ) -> str:
     """
     Determine the packaging directory for a given target.
@@ -2580,25 +2580,66 @@ def packaging_dir_for(
         target_class (str): Class of the target (e.g., "APPS").
         target_name (str): Name of the target (e.g., "NotePad").
         target_type (str): Target type (e.g., "HOST", "HOST_CROSS", "TARGET"). Default is None.
-        packaging_base (Path): Base path for the PACKAGING directory.
+        target_product_out (Path): Base path for the product output. Must be provided.
 
     Returns:
         str: The calculated path to the packaging directory.
 
     Raises:
-        ValueError: If target_class or target_name is not provided.
+        ValueError: If required parameters are not provided.
     """
     # Validate required parameters
+    if not target_product_out:
+        raise ValueError("Base packaging path must be provided.")
     if not target_class:
         raise ValueError("Class not defined in call to packaging_dir_for.")
     if not target_name:
         raise ValueError("Name not defined in call to packaging_dir_for.")
-    if not packaging_base:
+
+    # Construct the packaging base path
+    packaging_base = target_product_out / "obj" / "PACKAGING" / subdir
+
+    # Return the final path with target class and target name
+    return str(packaging_base / target_class / f"{target_name}_intermediates")
+
+
+def local_packaging_dir(
+    subdir: str,
+    local_module_class: str,
+    local_module: str,
+    local_is_host_module: bool = False,
+    target_product_out: Path = None
+) -> str:
+    """
+    Determine the local packaging directory for a given module.
+
+    Args:
+        subdir (str): Subdirectory inside PACKAGING.
+        local_module_class (str): Class of the local module (e.g., "APPS").
+        local_module (str): Name of the local module (e.g., "NotePad").
+        local_is_host_module (bool): If True, treat the module as a host module.
+        target_product_out (Path): Base path for the product output. Must be provided.
+
+    Returns:
+        str: The calculated path to the packaging directory.
+
+    Raises:
+        ValueError: If required parameters are not provided.
+    """
+    if not target_product_out:
         raise ValueError("Base packaging path must be provided.")
 
-    # Construct and return the final packaging directory path
-    return str(packaging_base / subdir / target_class / f"{target_name}_intermediates")
+    # Determine the target type based on whether it's a host module
+    target_type = "HOST" if local_is_host_module else "TARGET"
 
+    # Call packaging_dir_for with the resolved parameters
+    return packaging_dir_for(
+        subdir=subdir,
+        target_class=local_module_class,
+        target_name=local_module,
+        target_type=target_type,
+        target_product_out=target_product_out
+    )
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
