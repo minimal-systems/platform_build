@@ -595,6 +595,54 @@ def run_module_installed_files_test():
             f"Expected:\n{format_list(expected_result)}\nBut got:\n{format_list(result_str)}"
         )
 
+def run_module_target_built_files_test():
+    """Test the module_target_built_files function."""
+    progress_bar.display_task("Running", "module_target_built_files_test")
+
+    # Simulate modules with target-built files in a Linux environment
+    all_modules = {
+        "coreutils": {"TARGET_BUILT": [
+            target_root_out / "bin" / "ls",
+            target_root_out / "bin" / "cat",
+            target_root_out / "bin" / "mv"
+        ]},
+        "networking": {"TARGET_BUILT": [
+            target_root_out / "usr" / "bin" / "ping",
+            target_root_out / "usr" / "bin" / "wget"
+        ]},
+    }
+
+    # Run the function with module names
+    result = module_target_built_files(["coreutils", "networking"], all_modules)
+
+    # Convert PosixPath objects to strings for comparison
+    result_str = [str(path) for path in result]
+
+    # Define the expected output as strings
+    expected_result = [
+        str(target_root_out / "bin" / "ls"),
+        str(target_root_out / "bin" / "cat"),
+        str(target_root_out / "bin" / "mv"),
+        str(target_root_out / "usr" / "bin" / "ping"),
+        str(target_root_out / "usr" / "bin" / "wget"),
+    ]
+
+    # Print the results in a formatted list for better readability
+    def format_list(lst):
+        return "\n".join(f"- {item}" for item in lst)
+
+    if result_str == expected_result:
+        print_result(
+            True,
+            f"Expected target-built files match the result:\n{format_list(result_str)}",
+            ""
+        )
+    else:
+        print_result(
+            False,
+            "",
+            f"Expected:\n{format_list(expected_result)}\nBut got:\n{format_list(result_str)}"
+        )
 
 if __name__ == "__main__":
     run_copied_target_license_metadata_test()
@@ -611,4 +659,5 @@ if __name__ == "__main__":
     run_local_packaging_dir_test()
     run_module_built_files_test()
     run_module_installed_files_test()
+    run_module_target_built_files_test()
     progress_bar.finish()
