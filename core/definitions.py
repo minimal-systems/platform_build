@@ -2695,6 +2695,22 @@ def get_host_2nd_arch():
         return 'arm'
     return 'unknown'
 
+def module_target_built_files(module_names, all_modules):
+    """
+    Convert a list of module names into the list of files built for the target for those modules.
+
+    Args:
+        module_names (list): List of module names (e.g., ["coreutils", "networking"]).
+        all_modules (dict): Dictionary containing module attributes, including 'TARGET_BUILT' files.
+
+    Returns:
+        list: List of target-built files for the specified modules.
+    """
+    target_built_files = []
+    for module in module_names:
+        files = all_modules.get(module, {}).get("TARGET_BUILT", [])
+        target_built_files.extend(files)
+    return target_built_files
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
