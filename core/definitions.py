@@ -2343,6 +2343,12 @@ def build_license_metadata(all_non_modules: dict,
     print(f"Built {len(built_metadata_files)} 'meta_lic' files.")
     return built_metadata_files
 
+common_module_classes = ["TARGET_NOTICE_FILES", "HOST_NOTICE_FILES"]
+per_arch_module_classes = [
+    "SHARED_LIBRARIES", "STATIC_LIBRARIES", "EXECUTABLES", "GYP",
+    "NATIVE_TESTS", "HEADER_LIBRARIES", "RLIB_LIBRARIES", "DYLIB_LIBRARIES"
+]
+
 def find_idf_prefix(target_type, host_cross_os):
     """
     Determine the prefix for the intermediate directory based on the target type and host cross OS.
@@ -2357,8 +2363,6 @@ def find_idf_prefix(target_type, host_cross_os):
     if host_cross_os:
         return f"host_cross_{target_type.lower()}"
     return target_type.lower() if target_type else "target"
-
-import os
 
 def intermediates_dir_for(target_class, target_name, target_type=None,
                           force_common=False, second_arch=False, host_cross_os=False,
@@ -2393,13 +2397,6 @@ def intermediates_dir_for(target_class, target_name, target_type=None,
 
     # Determine the 2nd arch prefix if applicable
     second_arch_prefix = "2nd_arch_" if second_arch else ""
-
-    # Define module class types
-    common_module_classes = ["TARGET_NOTICE_FILES", "HOST_NOTICE_FILES"]
-    per_arch_module_classes = [
-        "SHARED_LIBRARIES", "STATIC_LIBRARIES", "EXECUTABLES", "GYP",
-        "NATIVE_TESTS", "HEADER_LIBRARIES", "RLIB_LIBRARIES", "DYLIB_LIBRARIES"
-    ]
 
     # Calculate the base intermediate directory
     if force_common or f"{prefix}_{target_class}" in common_module_classes:
@@ -2493,6 +2490,60 @@ def local_meta_intermediates_dir(local_module_class, local_module, local_is_host
         host_cross_os=host_cross_os,
         target_product_out=target_product_out
     )
+
+def generated_sources_dir_for(
+    target_class,
+    target_name,
+    target_type=None,
+    force_common=False,
+    common_module_classes=None,
+    out_common_gen=None,
+    out_gen=None,
+    host_cross_os=None,
+):
+    """
+    Calculate the generated sources directory for a given target.
+
+    Args:
+        target_class (str): Class of the target (e.g., "APPS").
+        target_name (str): Name of the target (e.g., "NotePad").
+        target_type (str): Type of the target (e.g., "HOST", "TARGET"). Default is None.
+        force_common (bool): If True, force the generated sources directory to be COMMON.
+        common_module_classes (list): List of common module classes to consider.
+        out_common_gen (Path or str): Base path for common generated sources.
+        out_gen (Path or str): Base path for non-common generated sources.
+        host_cross_os (bool): If True, force host cross OS prefix.
+
+    Returns:
+        str: The calculated path to the generated sources directory.
+
+    Raises:
+        ValueError: If required parameters are not provided.
+    """
+    if not target_class:
+        raise ValueError("Class not defined in call to generated_sources_dir_for.")
+    if not target_name:
+        raise ValueError("Name not defined in call to generated_sources_dir_for.")
+
+    # Resolve base paths from arguments (ensure Path objects for consistency)
+    out_common_gen = Path(out_common_gen) if out_common_gen else Path.cwd() / "obj/common_gen"
+    out_gen = Path(out_gen) if out_gen else Path.cwd() / "obj/gen"
+
+    # Determine the prefix based on the target type
+    idf_prefix = find_idf_prefix(target_type, host_cross_os)
+
+    # Default to an empty list if no specific common classes are provided
+    common_module_classes = common_module_classes or []
+
+    # Choose the base directory for generated sources
+    if force_common or f"{idf_prefix}_{target_class}" in common_module_classes:
+        int_base = out_common_gen
+    else:
+        int_base = out_gen
+
+    # Construct and return the final path
+    return str(int_base / target_class / f"{target_name}_intermediates")
+
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()

@@ -1,12 +1,13 @@
 import os
 import inspect
+from os import mkdir
 from pathlib import Path
 
 from cola.widgets.standard import progress
 from colorama import Fore, Style, init
 from ninja_printer import NinjaStyleTqdm
 import sys
-from envsetup import target_product_out, out_dir
+from envsetup import *
 from definitions import (
     license_metadata_rule,
     non_module_license_metadata_rule,
@@ -17,7 +18,8 @@ from definitions import (
     build_license_metadata,
     find_idf_prefix,
     intermediates_dir_for,
-    local_intermediates_dir
+    local_intermediates_dir,
+    generated_sources_dir_for
 )
 
 
@@ -248,10 +250,10 @@ def run_build_license_metadata_test(out_dir: str):
 
 
 def run_idf_prefix_test():
-    progress_bar.print_log(find_idf_prefix("", ""))  # Output: target
-    progress_bar.print_log(find_idf_prefix("HOST_CROSS", ""))  # Output: host_cross
-    progress_bar.print_log(find_idf_prefix("something", "non_empty"))  # Output: host_cross
-    progress_bar.print_log(find_idf_prefix("something", ""))  # Output: host
+    progress_bar.print_log(find_idf_prefix("", host_cross_os))  # Output: target
+    progress_bar.print_log(find_idf_prefix("HOST_CROSS", host_cross_os))  # Output: host_cross
+    progress_bar.print_log(find_idf_prefix("something", host_cross_os))  # Output: host_cross
+    progress_bar.print_log(find_idf_prefix("something", host_cross_os))  # Output: host
 
 def run_intermediates_dir_for_test():
     """Test the intermediates_dir_for function."""
@@ -315,6 +317,56 @@ def run_local_intermediates_dir_test():
     except ValueError as e:
         print(f"❌ Test failed with error: {e}")
 
+def run_generated_sources_dir_for_test():
+    """Test the generated_sources_dir_for function."""
+    progress_bar.display_task("Running", "generated_sources_dir_for_test")
+
+    # Define paths following the Android build structure
+    target_common_out = out_dir / "target" / "product" / "common"
+    out_common_gen = target_common_out / "obj" / "common_gen"
+    out_gen = target_common_out / "obj" / "gen"
+
+    try:
+        # Test 1: Non-common target directory
+        result = generated_sources_dir_for(
+            target_class="APPS",
+            target_name="NotePad",
+            target_type="HOST",
+            force_common=False,
+            out_gen=out_gen,
+            out_common_gen=out_common_gen,
+            host_cross_os=False,
+            common_module_classes=["target_LIBS"]
+        )
+        expected_dir = str(out_gen / "APPS" / "NotePad_intermediates")
+        print_result(
+            result == expected_dir,
+            f"Expected directory '{expected_dir}' matches the result.",
+            f"Expected {expected_dir}, but got {result}"
+        )
+
+        # Test 2: Common target directory (forced common)
+        result = generated_sources_dir_for(
+            target_class="APPS",
+            target_name="NotePad",
+            target_type="TARGET",
+            force_common=True,
+            out_gen=out_gen,
+            out_common_gen=out_common_gen
+        )
+        expected_dir = str(out_common_gen / "APPS" / "NotePad_intermediates")
+        print_result(
+            result == expected_dir,
+            f"Expected directory '{expected_dir}' matches the result.",
+            f"Expected {expected_dir}, but got {result}"
+        )
+        os.makedirs(result, exist_ok=True)
+
+    except ValueError as e:
+        progress_bar.print_log(f"Test failed with error: {e}")
+
+
+
 if __name__ == "__main__":
     run_copied_target_license_metadata_test()
     run_license_metadata_test()
@@ -325,4 +377,5 @@ if __name__ == "__main__":
     run_idf_prefix_test()
     run_intermediates_dir_for_test()
     run_local_intermediates_dir_test()
+    run_generated_sources_dir_for_test()
     progress_bar.finish()
