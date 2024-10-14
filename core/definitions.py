@@ -2512,6 +2512,58 @@ def generated_sources_dir_for(
     # Construct and return the final path
     return str(int_base / target_class / f"{target_name}_intermediates")
 
+def local_generated_sources_dir(
+        local_module_class: str,
+        local_module: str,
+        local_is_host_module: bool = False,
+        force_common: bool = False,
+        common_module_classes: list = None,
+        out_common_gen: Path = None,
+        out_gen: Path = None,
+        host_cross_os: bool = False) -> str:
+    """
+    Determine the generated sources directory for a local module.
+
+    Args:
+        local_module_class (str): Class of the local module (e.g., "APPS").
+        local_module (str): Name of the local module (e.g., "NotePad").
+        local_is_host_module (bool): If True, treat as a host module.
+        force_common (bool): If True, force the generated sources directory to be COMMON.
+        common_module_classes (list): List of common module classes to consider.
+        out_common_gen (Path): Base path for common generated sources.
+        out_gen (Path): Base path for non-common generated sources.
+        host_cross_os (bool): If True, applies host cross OS prefix.
+
+    Returns:
+        str: The calculated path to the generated sources directory.
+
+    Raises:
+        ValueError: If required parameters are not provided.
+    """
+    if not local_module_class:
+        raise ValueError(
+            "LOCAL_MODULE_CLASS not defined before call to "
+            "local_generated_sources_dir."
+        )
+    if not local_module:
+        raise ValueError(
+            "LOCAL_MODULE not defined before call to "
+            "local_generated_sources_dir."
+        )
+
+    target_type = "HOST" if local_is_host_module else "TARGET"
+
+    return generated_sources_dir_for(
+        target_class=local_module_class,
+        target_name=local_module,
+        target_type=target_type,
+        force_common=force_common,
+        common_module_classes=common_module_classes,
+        out_common_gen=out_common_gen,
+        out_gen=out_gen,
+        host_cross_os=host_cross_os
+    )
+
 
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
