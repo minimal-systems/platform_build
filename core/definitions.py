@@ -2910,6 +2910,46 @@ def transform_l_to_c_or_cpp(lex_file: str, output_file: str, private_module: str
         print(f"Error during Lex transformation: {e}")
         raise
 
+def transform_y_to_c_or_cpp(yacc_file: str, output_file: str, private_module: str,
+                            yacc: str = "yacc", m4: str = "m4", yacc_flags: str = ""):
+    """
+    Transform a .y file into a .c or .cpp file using Yacc.
+
+    Args:
+        yacc_file (str): Path to the input .y file.
+        output_file (str): Path to the output .c or .cpp file.
+        private_module (str): Name of the private module being processed.
+        yacc (str): Yacc command to use. Default is 'yacc'.
+        m4 (str): M4 command to use. Default is 'm4'.
+        yacc_flags (str): Additional Yacc flags.
+
+    Raises:
+        FileNotFoundError: If the input Yacc file does not exist.
+        subprocess.CalledProcessError: If the Yacc command fails.
+    """
+    if not os.path.exists(yacc_file):
+        raise FileNotFoundError(f"Yacc file not found: {yacc_file}")
+
+    # Create the output directory if it doesn't exist
+    output_dir = Path(output_file).parent
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Print the transformation message
+    print(f"Yacc: {private_module} <= {yacc_file}")
+
+    # Generate the header file path from the output file's basename
+    header_file = f"{Path(output_file).stem}.h"
+
+    # Construct the Yacc command
+    command = f"{m4} | {yacc} {yacc_flags} --defines={header_file} -o {output_file} {yacc_file}"
+
+    # Execute the Yacc command
+    try:
+        subprocess.run(command, shell=True, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error during Yacc transformation: {e}")
+        raise
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
