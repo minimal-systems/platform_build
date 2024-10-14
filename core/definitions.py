@@ -2730,6 +2730,24 @@ def doc_timestamp_for(doc_module, out_docs):
     timestamp_path = out_docs / f"{doc_module}-timestamp"
     return str(timestamp_path)
 
+def append_path(base_path: str, leaf_path: str) -> str:
+    """
+    Append a leaf path to a base path, properly handling slashes.
+
+    Args:
+        base_path (str): The base path to append to.
+        leaf_path (str): The leaf path to append.
+
+    Returns:
+        str: The combined path with proper slashes.
+    """
+    # Ensure the leaf path does not start with a slash
+    leaf_path = leaf_path.lstrip('/')
+
+    # Join paths and normalize any double slashes
+    combined_path = os.path.join(base_path, leaf_path)
+    return os.path.normpath(combined_path)
+
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
