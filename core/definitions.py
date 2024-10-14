@@ -2875,6 +2875,41 @@ def track_gen_file_obj(generated_files, objects):
     ]
     track_src_file_obj(sources, objects)
 
+def transform_l_to_c_or_cpp(lex_file: str, output_file: str, private_module: str, lex: str = "lex", m4: str = "m4"):
+    """
+    Transform a .l file into a .c or .cpp file using Lex.
+
+    Args:
+        lex_file (str): Path to the input .l file.
+        output_file (str): Path to the output .c or .cpp file.
+        private_module (str): Name of the private module being processed.
+        lex (str): Lex command to use. Default is 'lex'.
+        m4 (str): M4 command to use. Default is 'm4'.
+
+    Raises:
+        FileNotFoundError: If the input lex file does not exist.
+        subprocess.CalledProcessError: If the lex command fails.
+    """
+    if not os.path.exists(lex_file):
+        raise FileNotFoundError(f"Lex file not found: {lex_file}")
+
+    # Create the output directory if it doesn't exist
+    output_dir = Path(output_file).parent
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Print the transformation message
+    print(f"Lex: {private_module} <= {lex_file}")
+
+    # Construct the lex command
+    command = f"{m4} | {lex} -o{output_file} {lex_file}"
+
+    # Execute the lex command
+    try:
+        subprocess.run(command, shell=True, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error during Lex transformation: {e}")
+        raise
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
