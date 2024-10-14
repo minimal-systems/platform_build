@@ -1460,9 +1460,15 @@ def _license_metadata_rule(target, meta_lic, all_modules, all_targets,
         return e.stdout, e.stderr
 
 
-def license_metadata_rule(target, all_modules, all_targets,
-                          build_license_metadata_cmd, intermediates_dir,
-                          out_dir):
+def license_metadata_rule(
+    target: str,
+    all_modules: dict,
+    all_targets: dict,
+    build_license_metadata_cmd: str,
+    intermediates_dir: str,
+    out_dir: str,
+    argument_file_dir: str = None
+):
     """
     License metadata build rule for the given target.
 
@@ -1473,12 +1479,15 @@ def license_metadata_rule(target, all_modules, all_targets,
         build_license_metadata_cmd (str): Command to build license metadata.
         intermediates_dir (str): Directory path for intermediate files.
         out_dir (str): The base output directory for the build.
+        argument_file_dir (str): Optional path to the argument file directory.
 
     Returns:
         None: Updates the `all_targets` dictionary in place.
     """
-    # Prepare the argument file directory
-    argument_file_dir = os.path.join(out_dir, "intermediates", "PACKAGING", "notice", target)
+    # Use the provided argument file directory or construct it from arguments
+    argument_file_dir = argument_file_dir or os.path.join(
+        out_dir, "intermediates", "PACKAGING", "notice", target
+    )
 
     # Get delayed meta licenses from the module
     module = all_modules.get(target, {})
@@ -1639,8 +1648,13 @@ def record_missing_non_module_dependencies(target, all_non_modules, all_targets,
             missing_dependencies.append(dep)
 
 
-def copied_target_license_metadata_rule(target_name: str,
-                                        all_targets: dict) -> None:
+def copied_target_license_metadata_rule(
+        target_name: str,
+        all_targets: dict,
+        all_copied_targets: dict,
+        copy_license_metadata_cmd: str,
+        out_dir: str,
+        intermediates_base_dir: str) -> None:
     """
     Wrapper function to check if the given target's `meta_lic` attribute is defined.
     If not, calls `_copied_target_license_metadata_rule` for further processing.
@@ -1648,131 +1662,118 @@ def copied_target_license_metadata_rule(target_name: str,
     Args:
         target_name (str): The name of the target to check.
         all_targets (dict): Dictionary of target attributes with target names as keys.
+        all_copied_targets (dict): Dictionary of copied target attributes.
+        copy_license_metadata_cmd (str): Command for copying license metadata.
+        out_dir (str): Base output directory for the build.
+        intermediates_base_dir (str): Base directory for intermediate files.
 
     Returns:
-        None: Calls `_copied_target_license_metadata_rule` if `meta_lic` is not defined.
+        None
     """
-    # Directly retrieve the target from the dictionary
     target = all_targets.get(target_name)
-
     if not target:
-        print(
-            f"{Fore.RED}Target '{target_name}' not found in all_targets.{Style.RESET_ALL}"
-        )
+        print(f"{Fore.RED}Target '{target_name}' not found in all_targets.{Style.RESET_ALL}")
         return
 
-    # Check if the target has a 'meta_lic' attribute
     if not target.get("meta_lic"):
-        # Call the internal function to handle further operations
-        print(
-            f"{Fore.CYAN}Calling _copied_target_license_metadata_rule for '{target_name}'...\n{Style.RESET_ALL}"
+        print(f"{Fore.CYAN}Calling _copied_target_license_metadata_rule for '{target_name}'...{Style.RESET_ALL}")
+        _copied_target_license_metadata_rule(
+            target_name,
+            all_targets,
+            all_copied_targets,
+            copy_license_metadata_cmd,
+            out_dir,
+            intermediates_base_dir
         )
-        # You would pass additional arguments required for _copied_target_license_metadata_rule here.
-        # Replace `None` placeholders with actual arguments as needed.
-        _copied_target_license_metadata_rule(target_name,
-                                             all_targets,
-                                             all_copied_targets={},
-                                             copy_license_metadata_cmd="",
-                                             out_dir="")
     else:
-        print(
-            f"{Fore.YELLOW}'meta_lic' is already defined for target '{target_name}', no action required.{Style.RESET_ALL}"
-        )
+        print(f"{Fore.YELLOW}'meta_lic' already defined for '{target_name}', no action required.{Style.RESET_ALL}")
 
 
-def _copied_target_license_metadata_rule(target_name, all_targets,
-                                         all_copied_targets,
-                                         copy_license_metadata_cmd, out_dir):
+def _copied_target_license_metadata_rule(
+        target_name: str,
+        all_targets: dict,
+        all_copied_targets: dict,
+        copy_license_metadata_cmd: str,
+        out_dir: str,
+        intermediates_base_dir: str) -> None:
     """
-    License metadata build rule for copied target, using dictionaries.
+    License metadata build rule for copied targets.
 
     Args:
         target_name (str): The name of the target to check and update.
         all_targets (dict): Dictionary where keys are target names and values are dictionaries with attributes.
-        all_copied_targets (dict): Dictionary where keys are copied target names and values are dictionaries with attributes and source dependencies.
-        copy_license_metadata_cmd (str): Command to copy license metadata.
-        out_dir (str): The base output directory for the build.
+        all_copied_targets (dict): Dictionary of copied target attributes with sources.
+        copy_license_metadata_cmd (str): Command for copying license metadata.
+        out_dir (str): Base output directory for the build.
+        intermediates_base_dir (str): Base directory for intermediate files.
 
     Returns:
-        None: Updates the `all_targets` dictionary in place if necessary.
+        None
     """
-    # Retrieve the target dictionary from all_targets
-    target = all_targets.get(target_name, None)
+    target = all_targets.get(target_name)
     if not target:
-        print(
-            f"{Fore.RED}Target '{target_name}' not found in all_targets.{Style.RESET_ALL}"
-        )
+        print(f"{Fore.RED}Target '{target_name}' not found in all_targets.{Style.RESET_ALL}")
         return
 
-    # Set intermediate variables
-    _dir = os.path.join(out_dir, "intermediates", "PACKAGING", "copynotice",
-                        target_name)
-    _meta = os.path.join(_dir, f"{target_name}.meta_lic")
-    _dep = None
+    packaging_dir = os.path.join(intermediates_base_dir, "PACKAGING", "copynotice", target_name)
+    meta_lic_file = os.path.join(packaging_dir, f"{target_name}.meta_lic")
+    dep_metadata = None
 
-    # Assign `meta_lic` to the target
-    target["meta_lic"] = _meta
+    target["meta_lic"] = meta_lic_file
 
-    # Retrieve the copied target information from all_copied_targets
-    copied_target = all_copied_targets.get(target_name, None)
+    copied_target = all_copied_targets.get(target_name)
     if not copied_target:
-        print(
-            f"{Fore.RED}Copied target '{target_name}' not found in all_copied_targets.{Style.RESET_ALL}"
-        )
+        print(f"{Fore.RED}Copied target '{target_name}' not found in all_copied_targets.{Style.RESET_ALL}")
         return
 
-    # Retrieve sources for the copied target
     sources = copied_target.get("sources", [])
     if not sources:
-        print(
-            f"{Fore.RED}No sources found for copied target '{target_name}'.{Style.RESET_ALL}"
-        )
+        print(f"{Fore.RED}No sources found for copied target '{target_name}'.{Style.RESET_ALL}")
         return
 
-    # Find metadata of each source target in all_targets
     for source_name in sources:
-        source_target = all_targets.get(source_name, None)
+        source_target = all_targets.get(source_name)
         source_meta = source_target.get("meta_lic") if source_target else None
 
-        if _dep is None:
-            _dep = source_meta
-        elif _dep != source_meta:
+        if dep_metadata is None:
+            dep_metadata = source_meta
+        elif dep_metadata != source_meta:
             raise ValueError(
-                f"Cannot copy target from multiple modules: {target_name} from {_dep} and {source_meta}"
+                f"Cannot copy target '{target_name}' from multiple modules: {dep_metadata} and {source_meta}"
             )
 
-    if not _dep:
+    if not dep_metadata:
         raise ValueError(
-            f"Cannot copy target from unknown module: {target_name} from {sources}"
+            f"Cannot copy target '{target_name}' from unknown module: {sources}"
         )
 
-    # Create argument file directory
-    argument_file = os.path.join(_dir, "arguments")
-    os.makedirs(os.path.dirname(argument_file), exist_ok=True)
+    argument_file_path = os.path.join(packaging_dir, "arguments")
+    os.makedirs(os.path.dirname(argument_file_path), exist_ok=True)
 
-    # Create argument file content
     args_to_dump = [
-        f"-i {target_name}", f"-s {' '.join(sources)}", f"-d {_dep}"
+        f"-i {target_name}",
+        f"-s {' '.join(sources)}",
+        f"-d {dep_metadata}"
     ]
-    with open(argument_file, 'w') as file:
+    with open(argument_file_path, 'w') as file:
         file.write("\n".join(args_to_dump))
 
-    # Construct the build command
-    build_command = f"OUT_DIR={out_dir} {copy_license_metadata_cmd} "
-    build_command += f"@{argument_file} -o {_meta}"
+    build_command = (
+        f"OUT_DIR={out_dir} {copy_license_metadata_cmd} "
+        f"@{argument_file_path} -o {meta_lic_file}"
+    )
 
-    #print(f"Executing: {build_command}")
     # Uncomment to execute the command if needed:
     # subprocess.run(build_command, shell=True, check=True, capture_output=True, text=True)
 
-    # Update the target metadata with additional information
     target.update({
         "private_dest_target": target_name,
         "private_source_targets": sources,
-        "private_source_metadata": _dep,
-        "private_argument_file": argument_file
+        "private_source_metadata": dep_metadata,
+        "private_argument_file": argument_file_path
     })
-    #print(f"Updated target metadata for copied target: {target_name}")
+
+    # print(f"Updated target metadata for copied target: {target_name}")
 
 def declare_license_metadata(
         target, license_kinds, license_conditions, notices, package_name, project_path, all_non_modules, all_targets, out_dir):
@@ -2563,6 +2564,40 @@ def local_generated_sources_dir(
         out_gen=out_gen,
         host_cross_os=host_cross_os
     )
+
+def packaging_dir_for(
+    subdir: str,
+    target_class: str,
+    target_name: str,
+    target_type: str = None,
+    packaging_base: Path = None
+) -> str:
+    """
+    Determine the packaging directory for a given target.
+
+    Args:
+        subdir (str): Subdirectory inside PACKAGING.
+        target_class (str): Class of the target (e.g., "APPS").
+        target_name (str): Name of the target (e.g., "NotePad").
+        target_type (str): Target type (e.g., "HOST", "HOST_CROSS", "TARGET"). Default is None.
+        packaging_base (Path): Base path for the PACKAGING directory.
+
+    Returns:
+        str: The calculated path to the packaging directory.
+
+    Raises:
+        ValueError: If target_class or target_name is not provided.
+    """
+    # Validate required parameters
+    if not target_class:
+        raise ValueError("Class not defined in call to packaging_dir_for.")
+    if not target_name:
+        raise ValueError("Name not defined in call to packaging_dir_for.")
+    if not packaging_base:
+        raise ValueError("Base packaging path must be provided.")
+
+    # Construct and return the final packaging directory path
+    return str(packaging_base / subdir / target_class / f"{target_name}_intermediates")
 
 
 def get_host_2nd_arch():
