@@ -2771,6 +2771,22 @@ def echo_warning(path_info: str, message: str) -> None:
     # Print the message to stderr
     print(formatted_message, file=sys.stderr)
 
+def echo_error(path_info: str, message: str) -> None:
+    """
+    Print a formatted error message with path information.
+
+    Args:
+        path_info (str): The path (and optionally line) information.
+        message (str): The error message to print.
+    """
+    # Format the error message
+    formatted_message = (
+        f"{esc_bold}{path_info}: {esc_error}error:{esc_reset}{esc_bold} "
+        f"{message.replace("'", r'\'')}{esc_reset}"
+    )
+
+    # Print the message to stderr
+    print(formatted_message, file=sys.stderr)
 
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
