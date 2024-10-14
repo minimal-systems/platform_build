@@ -8,6 +8,7 @@ import subprocess
 import shutil
 from colorama import Fore, Style, init
 from typing import Union
+from collections import defaultdict
 
 # Initialize colorama for cross-platform support
 init(autoreset=True)
@@ -2829,6 +2830,50 @@ def include_depfiles_for_objs(object_files, all_targets, depfile_key="DEPFILE"):
         depfile = obj.with_suffix(".d")  # Replace .o with .d
         include_depfile(depfile, obj, all_targets, depfile_key=depfile_key)
 
+# Track source files, generated files, and their corresponding objects
+tracked_src_files = []
+tracked_gen_files = []
+src_file_obj_mapping = defaultdict(str)
+src_file_gen_mapping = defaultdict(str)
+
+def track_src_file_obj(sources, objects):
+    """
+    Track source files and their corresponding object files.
+
+    Args:
+        sources (list): List of source files.
+        objects (list): List of matching object files.
+    """
+    for i, src in enumerate(sources):
+        tracked_src_files.append(src)
+        if i < len(objects):
+            src_file_obj_mapping[src] = objects[i]
+
+def track_src_file_gen(sources, generated_files):
+    """
+    Track source files and their corresponding generated files.
+
+    Args:
+        sources (list): List of source files.
+        generated_files (list): List of matching generated files.
+    """
+    for i, src in enumerate(sources):
+        tracked_gen_files.append(src)
+        if i < len(generated_files):
+            src_file_gen_mapping[src] = generated_files[i]
+
+def track_gen_file_obj(generated_files, objects):
+    """
+    Track generated files and their corresponding object files.
+
+    Args:
+        generated_files (list): List of generated files.
+        objects (list): List of matching object files.
+    """
+    sources = [
+        src_file_gen_mapping.get(gen, gen) for gen in generated_files
+    ]
+    track_src_file_obj(sources, objects)
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
