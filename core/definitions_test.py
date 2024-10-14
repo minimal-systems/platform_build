@@ -19,7 +19,7 @@ from definitions import (
     find_idf_prefix,
     intermediates_dir_for,
     local_intermediates_dir,
-    generated_sources_dir_for
+    generated_sources_dir_for,
 )
 
 
@@ -497,7 +497,54 @@ def run_local_packaging_dir_test():
     except ValueError as e:
         progress_bar.print_log(f"Test failed with error: {e}")
 
+def run_module_built_files_test():
+    """Test the module_built_files function."""
+    progress_bar.display_task("Running", "module_built_files_test")
 
+    # Simulate modules with built files in a Linux-based environment
+    all_modules = {
+        "coreutils": {"BUILT": [
+            target_system_out / "bin" / "ls",
+            target_system_out / "bin" / "cat",
+            target_system_out / "bin" / "mv"
+        ]},
+        "networking": {"BUILT": [
+            target_system_out / "usr" / "bin" / "ping",
+            target_system_out / "usr" / "bin" / "wget"
+        ]},
+    }
+
+    # Run the function with module names
+    result = module_built_files(["coreutils", "networking"], all_modules)
+
+    # Convert PosixPath objects to strings for comparison
+    result_str = [str(path) for path in result]
+
+    # Define the expected output as strings
+    expected_result = [
+        str(target_system_out / "bin" / "ls"),
+        str(target_system_out / "bin" / "cat"),
+        str(target_system_out / "bin" / "mv"),
+        str(target_system_out / "usr" / "bin" / "ping"),
+        str(target_system_out / "usr" / "bin" / "wget"),
+    ]
+
+    # Print the results in a formatted list for better readability
+    def format_list(lst):
+        return "\n".join(f"- {item}" for item in lst)
+
+    if result_str == expected_result:
+        print_result(
+            True,
+            f"Expected built files match the result:\n{format_list(result_str)}",
+            ""
+        )
+    else:
+        print_result(
+            False,
+            "",
+            f"Expected:\n{format_list(expected_result)}\nBut got:\n{format_list(result_str)}"
+        )
 
 if __name__ == "__main__":
     run_copied_target_license_metadata_test()
@@ -512,4 +559,5 @@ if __name__ == "__main__":
     run_generated_sources_dir_for_test()
     run_packaging_dir_for_test()
     run_local_packaging_dir_test()
+    run_module_built_files_test()
     progress_bar.finish()

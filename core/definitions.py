@@ -2641,6 +2641,35 @@ def local_packaging_dir(
         target_product_out=target_product_out
     )
 
+def module_built_files(modules_list, all_modules):
+    """
+    Convert a list of short module names (e.g., "framework", "Browser")
+    into the list of files built for those modules.
+
+    Args:
+        modules_list (list): List of module names.
+        all_modules (dict): Dictionary containing all module information
+                            with built files under 'BUILT'.
+
+    Returns:
+        list: List of files built for the specified modules.
+
+    Example:
+        all_modules = {
+            "framework": {"BUILT": ["framework.jar", "framework-res.apk"]},
+            "Browser": {"BUILT": ["Browser.apk"]},
+        }
+        result = module_built_files(["framework", "Browser"], all_modules)
+        print(result)  # Output: ['framework.jar', 'framework-res.apk', 'Browser.apk']
+    """
+    # Collect built files for all specified modules
+    built_files = []
+    for module in modules_list:
+        module_info = all_modules.get(module, {})
+        built_files.extend(module_info.get("BUILT", []))
+    return built_files
+
+
 def get_host_2nd_arch():
     host_arch = platform.machine().lower()
     if host_arch == 'x86_64':
