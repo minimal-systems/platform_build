@@ -2788,6 +2788,15 @@ def echo_error(path_info: str, message: str) -> None:
     # Print the message to stderr
     print(formatted_message, file=sys.stderr)
 
+def pretty(message: str) -> None:
+    """
+    Print a message to mimic legacy showcommands compatibility.
+
+    Args:
+        message (str): The message to print.
+    """
+    print(message)
+
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
