@@ -412,18 +412,18 @@ def run_packaging_dir_for_test():
     """Test the packaging_dir_for function."""
     progress_bar.display_task("Running", "packaging_dir_for_test")
 
-    # Define the packaging base path according to the Android build structure
+    # Define the packaging base path based on Android's build structure
     target_product_out = out_dir / "target" / "product" / "generic"
     packaging_base = target_product_out / "obj" / "PACKAGING"
 
     try:
-        # Test 1: Packaging directory for HOST target
+        # Test 1: Packaging directory for a HOST target
         result = packaging_dir_for(
             subdir="subdir",
             target_class="APPS",
             target_name="NotePad",
             target_type="HOST",
-            packaging_base=packaging_base
+            target_product_out=target_product_out
         )
         expected_dir = str(packaging_base / "subdir" / "APPS" / "NotePad_intermediates")
         print_result(
@@ -431,14 +431,15 @@ def run_packaging_dir_for_test():
             f"Expected directory '{expected_dir}' matches the result.",
             f"Expected {expected_dir}, but got {result}"
         )
+        os.makedirs(expected_dir, exist_ok=True)  # Ensure directory exists for validation
 
-        # Test 2: Packaging directory for TARGET type
+        # Test 2: Packaging directory for a TARGET type
         result = packaging_dir_for(
             subdir="subdir",
             target_class="APPS",
             target_name="NotePad",
             target_type="TARGET",
-            packaging_base=packaging_base
+            target_product_out=target_product_out
         )
         expected_dir = str(packaging_base / "subdir" / "APPS" / "NotePad_intermediates")
         print_result(
@@ -446,6 +447,52 @@ def run_packaging_dir_for_test():
             f"Expected directory '{expected_dir}' matches the result.",
             f"Expected {expected_dir}, but got {result}"
         )
+        os.makedirs(expected_dir, exist_ok=True)  # Ensure directory exists for validation
+
+    except ValueError as e:
+        progress_bar.print_log(f"Test failed with error: {e}")
+
+
+def run_local_packaging_dir_test():
+    """Test the local_packaging_dir function."""
+    progress_bar.display_task("Running", "local_packaging_dir_test")
+
+    # Define the base packaging path following the Android build structure
+    target_product_out = out_dir / "target" / "product" / "generic"
+    subdir = "subdir"
+
+    try:
+        # Test 1: Non-host module packaging directory
+        result = local_packaging_dir(
+            subdir=subdir,
+            local_module_class="APPS",
+            local_module="NotePad",
+            local_is_host_module=False,
+            target_product_out=target_product_out
+        )
+        expected_dir = str(target_product_out / "obj" / "PACKAGING" / subdir / "APPS" / "NotePad_intermediates")
+        print_result(
+            result == expected_dir,
+            f"Expected directory '{expected_dir}' matches the result.",
+            f"Expected {expected_dir}, but got {result}"
+        )
+        os.makedirs(result, exist_ok=True)  # Ensure directory exists
+
+        # Test 2: Host module packaging directory
+        result = local_packaging_dir(
+            subdir=subdir,
+            local_module_class="LIBS",
+            local_module="HostLib",
+            local_is_host_module=True,
+            target_product_out=target_product_out
+        )
+        expected_dir = str(target_product_out / "obj" / "PACKAGING" / subdir / "LIBS" / "HostLib_intermediates")
+        print_result(
+            result == expected_dir,
+            f"Expected directory '{expected_dir}' matches the result.",
+            f"Expected {expected_dir}, but got {result}"
+        )
+        os.makedirs(result, exist_ok=True)  # Ensure directory exists
 
     except ValueError as e:
         progress_bar.print_log(f"Test failed with error: {e}")
@@ -464,4 +511,5 @@ if __name__ == "__main__":
     run_local_intermediates_dir_test()
     run_generated_sources_dir_for_test()
     run_packaging_dir_for_test()
+    run_local_packaging_dir_test()
     progress_bar.finish()
