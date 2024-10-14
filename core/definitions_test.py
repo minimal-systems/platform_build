@@ -688,6 +688,47 @@ def run_doc_timestamp_for_test():
     except Exception as e:
         progress_bar.print_log(f"Test failed with error: {e}")
 
+def run_append_path_test():
+    """Test the append_path function."""
+    progress_bar.display_task("Running", "append_path_test")
+
+    # Define the base path for the tests
+    base_path = target_product_out / "obj"
+    leaf_path = "TESTING"
+
+    try:
+        # Test 1: Regular base and leaf path
+        result = append_path(str(base_path), leaf_path)
+        expected_result = str(base_path / leaf_path)
+        print_result(
+            result == expected_result,
+            f"Expected '{expected_result}' matches the result.",
+            f"Expected {expected_result}, but got {result}"
+        )
+
+        # Test 2: Base path with trailing slash
+        result = append_path(str(base_path) + "/", leaf_path)
+        expected_result = str(base_path / leaf_path)
+        print_result(
+            result == expected_result,
+            f"Expected '{expected_result}' matches the result.",
+            f"Expected {expected_result}, but got {result}"
+        )
+
+        # Test 3: Leaf path with leading slash
+        result = append_path(str(base_path), f"/{leaf_path}")
+        expected_result = str(base_path / leaf_path)
+        print_result(
+            result == expected_result,
+            f"Expected '{expected_result}' matches the result.",
+            f"Expected {expected_result}, but got {result}"
+        )
+
+    except Exception as e:
+        progress_bar.print_log(f"Test failed with error: {e}")
+
+
+
 if __name__ == "__main__":
     run_copied_target_license_metadata_test()
     run_license_metadata_test()
@@ -705,4 +746,5 @@ if __name__ == "__main__":
     run_module_installed_files_test()
     run_module_target_built_files_test()
     run_doc_timestamp_for_test()
+    run_append_path_test()
     progress_bar.finish()
