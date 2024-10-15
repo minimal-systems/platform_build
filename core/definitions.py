@@ -3550,6 +3550,120 @@ def transform_m_to_o(
     # Execute the compilation command
     subprocess.run(command, shell=True, check=True)
 
+def transform_host_cpp_to_o_compiler_args(
+    private_cflags="",
+    private_cppflags="",
+    private_debug_cflags="",
+    private_cflags_no_override="",
+    private_cppflags_no_override="",
+    private_no_default_compiler_flags=False,
+    private_host_global_cflags="",
+    private_host_global_cppflags="",
+    private_c_includes=None,
+):
+    """
+    Generate compiler arguments for compiling host C++ files to object files.
+
+    Args:
+        private_cflags (str): C flags.
+        private_cppflags (str): C++ flags.
+        private_debug_cflags (str): Debugging flags.
+        private_cflags_no_override (str): Non-overridable C flags.
+        private_cppflags_no_override (str): Non-overridable C++ flags.
+        private_no_default_compiler_flags (bool): If True, omit default flags.
+        private_host_global_cflags (str): Global C flags for host.
+        private_host_global_cppflags (str): Global C++ flags for host.
+        private_c_includes (list): Include directories.
+
+    Returns:
+        str: The assembled compiler argument string.
+    """
+    includes = " ".join([f"-I {path}" for path in private_c_includes or []])
+
+    args = [includes, "-c"]
+
+    if not private_no_default_compiler_flags:
+        args.append(private_host_global_cflags)
+        args.append(private_host_global_cppflags)
+
+    args.extend([
+        private_cflags,
+        private_cppflags,
+        private_debug_cflags,
+        private_cflags_no_override,
+        private_cppflags_no_override,
+    ])
+
+    return " ".join(filter(None, args))
+
+def clang_tidy_host_cpp(
+    source_file,
+    path_to_clang_tidy="clang-tidy",
+    **kwargs
+):
+    """
+    Run clang-tidy on a host C++ file with dynamically generated compiler arguments.
+
+    Args:
+        source_file (str): The C++ source file to process.
+        path_to_clang_tidy (str): Path to the clang-tidy binary.
+        **kwargs: Additional arguments for compiler flags.
+    """
+    compiler_args = transform_host_cpp_to_o_compiler_args(**kwargs)
+    command = f"{path_to_clang_tidy} {source_file} -- {compiler_args}"
+    print(f"Running: {command}")
+    subprocess.run(command, shell=True, check=True)
+
+def transform_host_cpp_to_o_c(
+    source_file,
+    output_file,
+    with_tidy_only=False,
+    private_prefix="[BUILD]",
+    private_tidy_checks=True,
+    private_module=None,
+    private_cxx="clang++",
+    **kwargs
+):
+    """
+    Compile a host C++ file to an object file, optionally with clang-tidy checks.
+
+    Args:
+        source_file (str): The source C++ file to process.
+        output_file (str): The path to the output object file.
+        with_tidy_only (bool): If True, only run clang-tidy.
+        private_prefix (str): Prefix for displayed messages.
+        private_tidy_checks (bool): If True, run clang-tidy checks.
+        private_module (str): Name of the module being processed.
+        private_cxx (str): Compiler command to use.
+        **kwargs: Additional arguments for compiler flags.
+    """
+    def echo_message(message):
+        """Utility function to print formatted messages."""
+        print(message)
+
+    def run_clang_tidy():
+        """Run clang-tidy if enabled."""
+        echo_message(f"tidy {private_prefix} C++: {source_file}")
+        clang_tidy_host_cpp(source_file=source_file, **kwargs)
+
+    def compile_cpp_file():
+        """Compile the C++ source file to an object file."""
+        echo_message(f"{private_prefix} C++: {private_module} <= {source_file}")
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+        compiler_args = transform_host_cpp_to_o_compiler_args(**kwargs)
+        command = f"{private_cxx} {compiler_args} -MD -MF {output_file.replace('.o', '.d')} -o {output_file} {source_file}"
+        print(f"Running: {command}")
+        subprocess.run(command, shell=True, check=True)
+
+    if with_tidy_only:
+        if private_tidy_checks:
+            run_clang_tidy()
+    else:
+        if private_tidy_checks:
+            run_clang_tidy()
+        compile_cpp_file()
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
