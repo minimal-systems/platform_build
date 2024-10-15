@@ -3343,6 +3343,30 @@ def transform_c_to_o_compiler_args(
     # Use transform_c_or_s_to_o_compiler_args to generate the full compiler arguments
     return transform_c_or_s_to_o_compiler_args(extra_flags=extra_flags, **kwargs)
 
+def clang_tidy_c(
+    source_file,
+    path_to_clang_tidy="clang-tidy",
+    **kwargs  # Pass additional arguments to transform_c_to_o_compiler_args
+):
+    """
+    Run clang-tidy on the given C source file with dynamically generated compiler arguments.
+
+    Args:
+        source_file (str): The source C file to be processed.
+        path_to_clang_tidy (str): Path to the clang-tidy binary. Default is 'clang-tidy'.
+        **kwargs: Additional arguments for the compiler argument generation.
+    """
+    # Generate compiler arguments using transform_c_to_o_compiler_args
+    compiler_args = transform_c_to_o_compiler_args(**kwargs)
+
+    # Construct the full clang-tidy command
+    command = f"{path_to_clang_tidy} {source_file} -- {compiler_args}"
+
+    print(f"Running: {command}")
+
+    # Execute the clang-tidy command
+    subprocess.run(command, shell=True, check=True)
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
