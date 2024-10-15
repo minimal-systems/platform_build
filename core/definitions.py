@@ -3111,6 +3111,67 @@ def call_clang_tidy(
     # Join the command components into a single string
     return " ".join(command)
 
+def clang_tidy_cpp(
+    source_file,
+    path_to_clang_tidy="clang-tidy",
+    private_tidy_flags=None,
+    private_tidy_checks=None,
+    private_c_includes=None,
+    private_imported_includes=None,
+    exports=None,
+    private_no_default_compiler_flags=False,
+    private_target_global_cflags=None,
+    private_target_global_cppflags=None,
+    private_arm_cflags=None,
+    private_rtti_flag=None,
+    private_cflags=None,
+    private_cppflags=None,
+    private_debug_cflags=None,
+    private_cflags_no_override=None,
+    private_cppflags_no_override=None,
+    private_global_c_includes=None,
+    private_global_c_system_includes=None
+):
+    """
+    Run clang-tidy on the given C++ source file with dynamically generated
+    compiler arguments using the provided functions.
+    """
+
+    # Generate the clang-tidy command
+    clang_tidy_command = call_clang_tidy(
+        path_to_clang_tidy,
+        private_tidy_flags,
+        private_tidy_checks
+    )
+
+    # Generate compiler arguments
+    compiler_args = transform_cpp_to_o_compiler_args(
+        private_c_includes or [],
+        private_imported_includes,
+        exports,
+        private_no_default_compiler_flags,
+        private_target_global_cflags,
+        private_target_global_cppflags,
+        private_arm_cflags,
+        private_rtti_flag,
+        private_cflags,
+        private_cppflags,
+        private_debug_cflags,
+        private_cflags_no_override,
+        private_cppflags_no_override,
+        private_global_c_includes,
+        private_global_c_system_includes
+    )
+
+    # Construct the full clang-tidy command with arguments
+    full_command = f"{clang_tidy_command} {source_file} -- {compiler_args}"
+
+    try:
+        # Execute the command
+        result = subprocess.run(full_command, shell=True, check=True, capture_output=True, text=True)
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"Clang-tidy failed with error:\n{e.stderr}")
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
