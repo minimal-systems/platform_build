@@ -3080,6 +3080,38 @@ def transform_cpp_to_o_compiler_args(
     # Join all arguments into a single string
     return " ".join(filter(None, args))
 
+def call_clang_tidy(
+    path_to_clang_tidy,
+    private_tidy_flags=None,
+    private_tidy_checks=None
+):
+    """
+    Generate the command for running clang-tidy with specific flags and checks.
+
+    Args:
+        path_to_clang_tidy (str): Path to the clang-tidy binary.
+        private_tidy_flags (str): Additional flags for clang-tidy.
+        private_tidy_checks (str): List of checks to run with clang-tidy.
+
+    Returns:
+        str: The assembled clang-tidy command.
+    """
+
+    # Initialize the command with the path to clang-tidy
+    command = [path_to_clang_tidy]
+
+    # Add optional flags if provided
+    if private_tidy_flags:
+        command.append(private_tidy_flags)
+
+    # Add the checks if provided
+    if private_tidy_checks:
+        command.append(f"-checks={private_tidy_checks}")
+
+    # Join the command components into a single string
+    return " ".join(command)
+
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
