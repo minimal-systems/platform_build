@@ -3173,6 +3173,106 @@ def clang_tidy_cpp(
     except subprocess.CalledProcessError as e:
         print(f"Clang-tidy failed with error:\n{e.stderr}")
 
+def clang_tidy_cpp_if_needed(
+    source_file,
+    output_file,
+    with_tidy_only=False,
+    path_to_clang_tidy="clang-tidy",
+    private_prefix=None,
+    private_tidy_flags=None,
+    private_tidy_checks=None,
+    private_arm_mode=None,
+    private_module=None,
+    private_cxx=None,
+    private_c_includes=None,
+    private_imported_includes=None,
+    exports=None,
+    private_no_default_compiler_flags=False,
+    private_target_global_cflags=None,
+    private_target_global_cppflags=None,
+    private_arm_cflags=None,
+    private_rtti_flag=None,
+    private_cflags=None,
+    private_cppflags=None,
+    private_debug_cflags=None,
+    private_cflags_no_override=None,
+    private_cppflags_no_override=None,
+    private_global_c_includes=None,
+    private_global_c_system_includes=None
+):
+    """
+    Executes either clang-tidy or the C++ compiler command based on conditions.
+    """
+
+    def echo_message(message):
+        """Utility to print messages in a controlled way."""
+        print(message)
+
+    def run_clang_tidy():
+        """Run clang-tidy if checks are enabled."""
+        if private_tidy_checks:
+            echo_message(f"{private_prefix} tidy {private_arm_mode} C++: {source_file}")
+            clang_tidy_cpp(
+                source_file=source_file,
+                path_to_clang_tidy=path_to_clang_tidy,
+                private_tidy_flags=private_tidy_flags,
+                private_tidy_checks=private_tidy_checks,
+                private_c_includes=private_c_includes,
+                private_imported_includes=private_imported_includes,
+                exports=exports,
+                private_no_default_compiler_flags=private_no_default_compiler_flags,
+                private_target_global_cflags=private_target_global_cflags,
+                private_target_global_cppflags=private_target_global_cppflags,
+                private_arm_cflags=private_arm_cflags,
+                private_rtti_flag=private_rtti_flag,
+                private_cflags=private_cflags,
+                private_cppflags=private_cppflags,
+                private_debug_cflags=private_debug_cflags,
+                private_cflags_no_override=private_cflags_no_override,
+                private_cppflags_no_override=private_cppflags_no_override,
+                private_global_c_includes=private_global_c_includes,
+                private_global_c_system_includes=private_global_c_system_includes
+            )
+
+    def run_cpp_compiler():
+        """Run the C++ compiler command."""
+        echo_message(f"{private_prefix} {private_arm_mode} C++: {private_module} <= {source_file}")
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+        # Build the compilation command
+        compiler_args = transform_cpp_to_o_compiler_args(
+            private_c_includes or [],
+            private_imported_includes,
+            exports,
+            private_no_default_compiler_flags,
+            private_target_global_cflags,
+            private_target_global_cppflags,
+            private_arm_cflags,
+            private_rtti_flag,
+            private_cflags,
+            private_cppflags,
+            private_debug_cflags,
+            private_cflags_no_override,
+            private_cppflags_no_override,
+            private_global_c_includes,
+            private_global_c_system_includes
+        )
+
+        command = f"{private_cxx} {compiler_args} -MD -MF {output_file.replace('.o', '.d')} -o {output_file} {source_file}"
+
+        # Run clang-tidy if checks are enabled
+        if private_tidy_checks:
+            run_clang_tidy()
+
+        # Execute the compilation command
+        subprocess.run(command, shell=True, check=True)
+
+    # Determine which path to take based on `with_tidy_only` flag
+    if with_tidy_only:
+        run_clang_tidy()
+    else:
+        run_cpp_compiler()
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
