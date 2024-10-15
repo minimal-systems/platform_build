@@ -3875,6 +3875,104 @@ def compile_dotdot_s_file_no_deps(source_file, intermediates, ninja_pool=None):
     compile_dotdot_file(source_file, str(object_file), compiler="clang", ninja_pool=ninja_pool)
     return object_file
 
+def concat_if_arg2_not_empty(cmd, args):
+    """Run the command if args is not empty."""
+    if args:
+        print(f"Running: {cmd} {args}")
+        subprocess.run(f"{cmd} {args}", shell=True, check=True)
+
+def split_long_arguments(cmd, args):
+    """
+    Split a long list of arguments into smaller groups and call the command multiple times.
+    At least one call is made, even if there are no arguments, to ensure the output is created.
+    """
+    groups = [args[i:i + 500] for i in range(0, len(args), 500)]
+    for group in groups:
+        concat_if_arg2_not_empty(cmd, " ".join(group))
+
+def extract_and_include_single_target_whole_static_lib(src_lib, dest_lib, ar="ar"):
+    """
+    Extracts the contents of a static library and includes them into a new destination library.
+    """
+    ldir = f"{os.path.splitext(os.path.basename(src_lib))[0]}_objs"
+    if os.path.exists(ldir):
+        shutil.rmtree(ldir)
+    os.makedirs(ldir)
+
+    shutil.copy(src_lib, ldir)
+    lib_to_include = os.path.join(ldir, os.path.basename(src_lib))
+
+    # Extract and repackage each file
+    filelist = []
+    subdir = 0
+    extracted_files = subprocess.check_output([ar, "t", src_lib], text=True).splitlines()
+    for f in extracted_files:
+        if os.path.exists(os.path.join(ldir, f)):
+            subdir_path = os.path.join(ldir, str(subdir))
+            os.makedirs(subdir_path, exist_ok=True)
+            subdir += 1
+            ar_cmd = [ar, "m", lib_to_include, f]
+            print(f"Running: {' '.join(ar_cmd)}")
+            subprocess.run(ar_cmd, check=True)
+
+        ext_path = os.path.join(ldir, f)
+        ar_cmd = [ar, "p", lib_to_include, f]
+        with open(ext_path, "w") as out_file:
+            subprocess.run(ar_cmd, stdout=out_file, check=True)
+        filelist.append(ext_path)
+
+    ar_cmd = [ar, "rcs", dest_lib] + filelist
+    print(f"Running: {' '.join(ar_cmd)}")
+    subprocess.run(ar_cmd, check=True)
+
+def extract_and_include_whole_static_libs_first(src_lib, dest_lib):
+    """Copy the source static library to the destination if it exists."""
+    if src_lib:
+        print(f"Copying {src_lib} to {dest_lib}")
+        shutil.copy(src_lib, dest_lib)
+
+def extract_and_include_target_whole_static_libs(dest_lib, ar="ar"):
+    """Extract and include all target whole static libraries."""
+    static_libs = os.environ.get("PRIVATE_ALL_WHOLE_STATIC_LIBRARIES", "").split()
+    if static_libs:
+        extract_and_include_whole_static_libs_first(static_libs[0], dest_lib)
+        for lib in static_libs[1:]:
+            extract_and_include_single_target_whole_static_lib(lib, dest_lib, ar)
+
+def transform_o_to_static_lib(
+    output_lib,
+    private_prefix="[BUILD]",
+    private_module="static_module",
+    ar="ar",
+    private_arflags="",
+    object_files=None
+):
+    """Create a static library from object files."""
+    object_files = object_files or []
+
+    # Print processing message
+    print(f"{private_prefix} StaticLib: {private_module} ({output_lib})")
+
+    # Ensure the output directory exists
+    os.makedirs(os.path.dirname(output_lib), exist_ok=True)
+
+    # Remove any existing static library
+    tmp_lib = f"{output_lib}.tmp"
+    if os.path.exists(output_lib):
+        os.remove(output_lib)
+    if os.path.exists(tmp_lib):
+        os.remove(tmp_lib)
+
+    # Extract and include all static libraries into a temporary archive
+    extract_and_include_target_whole_static_libs(tmp_lib, ar)
+
+    # Split object files into smaller groups and add them to the temporary archive
+    split_long_arguments(f"{ar} rcs {tmp_lib}", object_files)
+
+    # Move the temporary archive to the final output
+    print(f"Moving {tmp_lib} to {output_lib}")
+    shutil.move(tmp_lib, output_lib)
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
