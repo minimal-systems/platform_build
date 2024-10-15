@@ -3423,6 +3423,50 @@ def transform_c_to_o(
             run_clang_tidy()
         compile_c_file()
 
+def transform_s_to_o(
+    source_file,
+    output_file,
+    private_prefix="[BUILD]",
+    private_module=None,
+    private_cc="clang",  # Using clang as the compiler
+    private_asflags="",
+    **kwargs  # Additional arguments for compiler argument generation
+):
+    """
+    Compile an assembly (.s) source file into an object file.
+
+    Args:
+        source_file (str): Path to the assembly (.s) source file.
+        output_file (str): Path to the output object file.
+        private_prefix (str): Prefix for displayed messages.
+        private_module (str): The name of the private module being processed.
+        private_cc (str): The C compiler command (e.g., 'clang').
+        private_asflags (str): Additional flags for assembly compilation.
+        **kwargs: Additional arguments for compiler argument generation.
+    """
+    def echo_message(message):
+        """Utility function to print formatted messages."""
+        print(message)
+
+    # Print the processing message
+    echo_message(f"{private_prefix} asm: {private_module} <= {source_file}")
+
+    # Ensure the output directory exists
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    # Generate the compiler arguments for assembly compilation
+    compiler_args = transform_c_or_s_to_o_compiler_args(
+        extra_flags=private_asflags, **kwargs
+    )
+
+    # Construct the full compilation command
+    command = f"{private_cc} {compiler_args} -MD -MF {output_file.replace('.o', '.d')} -o {output_file} {source_file}"
+
+    print(f"Running: {command}")
+
+    # Execute the compilation command
+    subprocess.run(command, shell=True, check=True)
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
