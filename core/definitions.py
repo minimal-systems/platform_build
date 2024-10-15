@@ -3973,6 +3973,112 @@ def transform_o_to_static_lib(
     print(f"Moving {tmp_lib} to {output_lib}")
     shutil.move(tmp_lib, output_lib)
 
+def extract_and_include_single_host_whole_static_lib(src_lib, dest_lib, ar="ar"):
+    """
+    Extract and include the contents of a single host static library into the destination library.
+    """
+    ldir = f"WHOLE/{os.path.splitext(os.path.basename(src_lib))[0]}_objs"
+    if os.path.exists(ldir):
+        shutil.rmtree(ldir)
+    os.makedirs(ldir)
+
+    shutil.copy(src_lib, ldir)
+    lib_to_include = os.path.join(ldir, os.path.basename(src_lib))
+
+    filelist = []
+    subdir = 0
+
+    # Extract object files from the archive
+    extracted_files = subprocess.check_output([ar, "t", src_lib], text=True).splitlines()
+    for f in [file for file in extracted_files if file.endswith('.o')]:
+        if os.path.exists(os.path.join(ldir, f)):
+            subdir_path = os.path.join(ldir, str(subdir))
+            os.makedirs(subdir_path, exist_ok=True)
+            subdir += 1
+            ar_cmd = [ar, "m", lib_to_include, f]
+            print(f"Running: {' '.join(ar_cmd)}")
+            subprocess.run(ar_cmd, check=True)
+
+        ext_path = os.path.join(ldir, f)
+        ar_cmd = [ar, "p", lib_to_include, f]
+        with open(ext_path, "w") as out_file:
+            subprocess.run(ar_cmd, stdout=out_file, check=True)
+        filelist.append(ext_path)
+
+    ar_cmd = [ar, "rcs", dest_lib] + filelist
+    print(f"Running: {' '.join(ar_cmd)}")
+    subprocess.run(ar_cmd, check=True)
+
+def extract_and_include_host_whole_static_libs(dest_lib, ar="ar"):
+    """Extract and include all host whole static libraries."""
+    static_libs = os.environ.get("PRIVATE_ALL_WHOLE_STATIC_LIBRARIES", "").split()
+    if static_libs:
+        extract_and_include_single_host_whole_static_lib(static_libs[0], dest_lib, ar)
+        for lib in static_libs[1:]:
+            extract_and_include_single_host_whole_static_lib(lib, dest_lib, ar)
+
+def create_dummy_o_if_no_objs(output_lib):
+    """Create a dummy object file if there are no objects (for Darwin)."""
+    if not os.environ.get("PRIVATE_ALL_OBJECTS"):
+        dummy_path = os.path.join(os.path.dirname(output_lib), "dummy.o")
+        print(f"Creating dummy object: {dummy_path}")
+        Path(dummy_path).touch()
+
+def get_dummy_o_if_no_objs(output_lib):
+    """Get the path to the dummy object file (for Darwin)."""
+    if not os.environ.get("PRIVATE_ALL_OBJECTS"):
+        return os.path.join(os.path.dirname(output_lib), "dummy.o")
+    return ""
+
+def delete_dummy_o_if_no_objs(output_lib, ar="ar"):
+    """Delete the dummy object file if it was created (for Darwin)."""
+    dummy_path = get_dummy_o_if_no_objs(output_lib)
+    if dummy_path:
+        ar_cmd = [ar, "d", output_lib, dummy_path]
+        print(f"Running: {' '.join(ar_cmd)}")
+        subprocess.run(ar_cmd, check=True)
+        os.remove(dummy_path)
+
+def transform_host_o_to_static_lib(output_lib, ar="ar", global_arflags="", object_files=None):
+    """
+    Create a static library from object files, handling dummy objects on Darwin.
+    """
+    object_files = object_files or []
+    tmp_lib = f"{output_lib}.tmp"
+
+    print(f"[BUILD] StaticLib: {os.path.basename(output_lib)} ({output_lib})")
+
+    # Ensure the output directory exists
+    os.makedirs(os.path.dirname(output_lib), exist_ok=True)
+
+    # Remove existing archive files
+    if os.path.exists(output_lib):
+        os.remove(output_lib)
+    if os.path.exists(tmp_lib):
+        os.remove(tmp_lib)
+
+    # Extract and include all host whole static libraries into the temporary archive
+    extract_and_include_host_whole_static_libs(tmp_lib, ar)
+
+    # Handle dummy object on Darwin
+    if os.uname().sysname == "Darwin":
+        create_dummy_o_if_no_objs(tmp_lib)
+
+    # Build the command to add all objects to the temporary archive
+    dummy_obj = get_dummy_o_if_no_objs(tmp_lib)
+    all_objects = object_files + ([dummy_obj] if dummy_obj else [])
+    ar_cmd = [ar, "rcs", global_arflags, tmp_lib] + all_objects
+    print(f"Running: {' '.join(ar_cmd)}")
+    subprocess.run(ar_cmd, check=True)
+
+    # Delete the dummy object if it was created (on Darwin)
+    if os.uname().sysname == "Darwin":
+        delete_dummy_o_if_no_objs(tmp_lib, ar)
+
+    # Move the temporary archive to the final output
+    print(f"Moving {tmp_lib} to {output_lib}")
+    shutil.move(tmp_lib, output_lib)
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
