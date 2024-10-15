@@ -3814,6 +3814,67 @@ def transform_host_m_to_o(
     print(f"Running: {command}")
     subprocess.run(command, shell=True, check=True)
 
+DOTDOT_REPLACEMENT = "dotdot/"
+
+def replace_dotdot_in_path(path):
+    """Replace '../' in the path with the defined DOTDOT_REPLACEMENT."""
+    return path.replace("../", DOTDOT_REPLACEMENT)
+
+def compile_dotdot_file(
+    source_file,
+    output_file,
+    dependencies=None,
+    compiler="clang",
+    compile_flags="",
+    ninja_pool=None,
+):
+    """
+    Compile a source file (C/C++/Assembly) to an object file.
+
+    Args:
+        source_file (str): The source file path.
+        output_file (str): The output object file path.
+        dependencies (list): Additional dependencies (if any).
+        compiler (str): The compiler to use (e.g., clang, clang++).
+        compile_flags (str): Additional flags for the compiler.
+        ninja_pool (str): Ninja pool (if used for parallelism).
+    """
+    dependencies = dependencies or []
+
+    # Ensure output directory exists
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    # Print the compilation command
+    command = f"{compiler} {compile_flags} -o {output_file} {source_file}"
+    print(f"Running: {command}")
+
+    # Run the compilation command
+    subprocess.run(command, shell=True, check=True)
+
+def compile_dotdot_cpp_file(source_file, intermediates, ninja_pool=None):
+    """Compile a C++ source file with '../' in the path."""
+    object_file = Path(intermediates) / replace_dotdot_in_path(source_file).with_suffix(".o")
+    compile_dotdot_file(source_file, str(object_file), compiler="clang++", ninja_pool=ninja_pool)
+    return object_file
+
+def compile_dotdot_c_file(source_file, intermediates, ninja_pool=None):
+    """Compile a C source file with '../' in the path."""
+    object_file = Path(intermediates) / replace_dotdot_in_path(source_file).with_suffix(".o")
+    compile_dotdot_file(source_file, str(object_file), compiler="clang", ninja_pool=ninja_pool)
+    return object_file
+
+def compile_dotdot_s_file(source_file, intermediates, ninja_pool=None):
+    """Compile a .S source file with '../' in the path."""
+    object_file = Path(intermediates) / replace_dotdot_in_path(source_file).with_suffix(".o")
+    compile_dotdot_file(source_file, str(object_file), compiler="clang", ninja_pool=ninja_pool)
+    return object_file
+
+def compile_dotdot_s_file_no_deps(source_file, intermediates, ninja_pool=None):
+    """Compile a .s source file with '../' in the path, without dependencies."""
+    object_file = Path(intermediates) / replace_dotdot_in_path(source_file).with_suffix(".o")
+    compile_dotdot_file(source_file, str(object_file), compiler="clang", ninja_pool=ninja_pool)
+    return object_file
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
