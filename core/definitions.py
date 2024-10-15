@@ -3367,6 +3367,62 @@ def clang_tidy_c(
     # Execute the clang-tidy command
     subprocess.run(command, shell=True, check=True)
 
+def transform_c_to_o(
+    source_file,
+    output_file,
+    with_tidy_only=False,
+    private_prefix="[BUILD]",
+    private_tidy_checks=None,
+    private_arm_mode=None,
+    private_module=None,
+    private_cc="clang",  # Using clang instead of gcc
+    **kwargs  # Pass additional arguments to compiler functions
+):
+    """
+    Run clang-tidy and/or compile a C file to an object file based on the given conditions.
+
+    Args:
+        source_file (str): The source C file to process.
+        output_file (str): The output object file path.
+        with_tidy_only (bool): If True, only run clang-tidy.
+        private_prefix (str): Prefix for displayed messages.
+        private_tidy_checks (str): If set, enable clang-tidy checks.
+        private_arm_mode (str): ARM mode (e.g., arm64).
+        private_module (str): Name of the module being processed.
+        private_cc (str): The C compiler command to use.
+        **kwargs: Additional arguments for compiler argument generation.
+    """
+    def echo_message(message):
+        """Utility to print messages."""
+        print(message)
+
+    def run_clang_tidy():
+        """Run clang-tidy on the source file."""
+        echo_message(f"{private_prefix} tidy {private_arm_mode} C: {source_file}")
+        clang_tidy_c(source_file=source_file, **kwargs)
+
+    def compile_c_file():
+        """Compile the C file to an object file."""
+        echo_message(f"{private_prefix} {private_arm_mode} C: {private_module} <= {source_file}")
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+        # Generate compiler arguments
+        compiler_args = transform_c_to_o_compiler_args(**kwargs)
+
+        # Build and run the compilation command
+        command = f"{private_cc} {compiler_args} -MD -MF {output_file.replace('.o', '.d')} -o {output_file} {source_file}"
+        print(f"Running: {command}")
+        subprocess.run(command, shell=True, check=True)
+
+    # Logic matching the Makefile
+    if with_tidy_only:
+        if private_tidy_checks:
+            run_clang_tidy()
+    else:
+        if private_tidy_checks:
+            run_clang_tidy()
+        compile_c_file()
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
