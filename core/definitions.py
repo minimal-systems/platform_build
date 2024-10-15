@@ -3467,6 +3467,44 @@ def transform_s_to_o(
     # Execute the compilation command
     subprocess.run(command, shell=True, check=True)
 
+def transform_asm_to_o(
+    source_file,
+    output_file,
+    yasm="yasm",
+    private_c_includes=None,
+    target_global_yasm_flags="",
+    private_asflags="",
+    **kwargs  # Additional keyword arguments (if any)
+):
+    """
+    Compile an assembly (.asm) file into an object file using YASM.
+
+    Args:
+        source_file (str): Path to the assembly (.asm) source file.
+        output_file (str): Path to the output object file.
+        yasm (str): YASM command to use. Default is 'yasm'.
+        private_c_includes (list): List of include directories for YASM.
+        target_global_yasm_flags (str): Global YASM flags for the target.
+        private_asflags (str): Additional assembly flags.
+        **kwargs: Additional keyword arguments (if any).
+    """
+    # Ensure the output directory exists
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    # Construct include paths
+    include_args = " ".join([f"-I {inc}" for inc in private_c_includes or []])
+
+    # Construct the full YASM command
+    command = (
+        f"{yasm} {include_args} {target_global_yasm_flags} "
+        f"{private_asflags} -o {output_file} {source_file}"
+    )
+
+    print(f"Running: {command}")
+
+    # Execute the YASM command
+    subprocess.run(command, shell=True, check=True)
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
