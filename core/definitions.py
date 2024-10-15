@@ -3314,33 +3314,34 @@ def transform_c_or_s_to_o_compiler_args(
     # Join and return all arguments as a single string
     return " ".join(filter(None, args))
 
-def clang_compile_c_or_s(
-    source_file,
-    output_file,
-    private_clang="clang",  # Using clang for compilation
-    **kwargs
+def transform_c_to_o_compiler_args(
+    private_cflags="",
+    private_conlyflags="",
+    private_debug_cflags="",
+    private_cflags_no_override="",
+    **kwargs  # Additional arguments passed to transform_c_or_s_to_o_compiler_args
 ):
     """
-    Compile a C or assembly source file to an object file using clang.
+    Generate compiler arguments specifically for C files using the
+    transform_c_or_s_to_o_compiler_args function.
+
     Args:
-        source_file (str): Path to the source file.
-        output_file (str): Path to the output object file.
-        private_clang (str): Clang command to use.
-        **kwargs: Additional arguments for the compiler.
+        private_cflags (str): C compiler flags.
+        private_conlyflags (str): C-only compiler flags.
+        private_debug_cflags (str): Debugging flags.
+        private_cflags_no_override (str): Flags that must not be overridden.
+        **kwargs: Additional keyword arguments for transform_c_or_s_to_o_compiler_args.
+
+    Returns:
+        str: Assembled compiler argument string.
     """
-    # Ensure the output directory exists
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    # Combine C-specific flags into a single string
+    extra_flags = " ".join(
+        filter(None, [private_cflags, private_conlyflags, private_debug_cflags, private_cflags_no_override])
+    )
 
-    # Generate the compiler arguments
-    compiler_args = transform_c_or_s_to_o_compiler_args(**kwargs)
-
-    # Construct the full clang command
-    command = f"{private_clang} {compiler_args} -o {output_file} {source_file}"
-
-    print(f"Running: {command}")
-
-    # Execute the clang command
-    subprocess.run(command, shell=True, check=True)
+    # Use transform_c_or_s_to_o_compiler_args to generate the full compiler arguments
+    return transform_c_or_s_to_o_compiler_args(extra_flags=extra_flags, **kwargs)
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
