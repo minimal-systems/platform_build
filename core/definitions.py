@@ -3505,6 +3505,51 @@ def transform_asm_to_o(
     # Execute the YASM command
     subprocess.run(command, shell=True, check=True)
 
+def transform_m_to_o(
+    source_file,
+    output_file,
+    private_prefix="[BUILD]",
+    private_module=None,
+    private_cc="clang",  # Using clang for ObjC compilation
+    private_cflags="",
+    private_debug_cflags="",
+    **kwargs  # Additional arguments for compiler argument generation
+):
+    """
+    Compile an Objective-C (.m) file into an object file.
+
+    Args:
+        source_file (str): Path to the Objective-C (.m) source file.
+        output_file (str): Path to the output object file.
+        private_prefix (str): Prefix for displayed messages.
+        private_module (str): The name of the private module being processed.
+        private_cc (str): Compiler command to use. Default is 'clang'.
+        private_cflags (str): Flags for the C compiler.
+        private_debug_cflags (str): Debugging flags for the compiler.
+        **kwargs: Additional keyword arguments for compiler argument generation.
+    """
+    def echo_message(message):
+        """Utility function to print formatted messages."""
+        print(message)
+
+    # Print the processing message
+    echo_message(f"{private_prefix} ObjC: {private_module} <= {source_file}")
+
+    # Ensure the output directory exists
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    # Generate the compiler arguments for Objective-C compilation
+    extra_flags = f"{private_cflags} {private_debug_cflags}"
+    compiler_args = transform_c_or_s_to_o_compiler_args(extra_flags=extra_flags, **kwargs)
+
+    # Construct the full compilation command
+    command = f"{private_cc} {compiler_args} -o {output_file} {source_file}"
+
+    print(f"Running: {command}")
+
+    # Execute the compilation command
+    subprocess.run(command, shell=True, check=True)
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
