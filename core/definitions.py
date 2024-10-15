@@ -3009,6 +3009,76 @@ def c_includes(
 
     return include_paths
 
+def transform_cpp_to_o_compiler_args(
+    private_c_includes,
+    private_imported_includes=None,
+    exports=None,
+    private_no_default_compiler_flags=False,
+    private_target_global_cflags=None,
+    private_target_global_cppflags=None,
+    private_arm_cflags=None,
+    private_rtti_flag=None,
+    private_cflags=None,
+    private_cppflags=None,
+    private_debug_cflags=None,
+    private_cflags_no_override=None,
+    private_cppflags_no_override=None,
+    private_global_c_includes=None,
+    private_global_c_system_includes=None
+):
+    """
+    Generate compiler arguments for transforming a C++ file into an object file.
+
+    This function uses the provided variables to build compiler arguments,
+    ensuring it matches the Makefile logic for flexibility and correctness.
+    """
+
+    # Generate include paths
+    includes = " ".join([f"-I {path}" for path in private_c_includes])
+    imported_includes = " ".join(
+        [exports.get(i, "") for i in (private_imported_includes or [])]
+    )
+    global_includes = (
+        "" if private_no_default_compiler_flags else
+        " ".join([f"-I {path}" for path in private_global_c_includes or []])
+    )
+    system_includes = (
+        "" if private_no_default_compiler_flags else
+        " ".join([f"-isystem {path}" for path in private_global_c_system_includes or []])
+    )
+
+    # Assemble compiler arguments
+    args = [
+        includes,
+        imported_includes,
+        global_includes,
+        system_includes,
+        "-c"
+    ]
+
+    if not private_no_default_compiler_flags:
+        if private_target_global_cflags:
+            args.append(private_target_global_cflags)
+        if private_target_global_cppflags:
+            args.append(private_target_global_cppflags)
+        if private_arm_cflags:
+            args.append(private_arm_cflags)
+
+    if private_rtti_flag:
+        args.append(private_rtti_flag)
+    if private_cflags:
+        args.append(private_cflags)
+    if private_cppflags:
+        args.append(private_cppflags)
+    if private_debug_cflags:
+        args.append(private_debug_cflags)
+    if private_cflags_no_override:
+        args.append(private_cflags_no_override)
+    if private_cppflags_no_override:
+        args.append(private_cppflags_no_override)
+
+    # Join all arguments into a single string
+    return " ".join(filter(None, args))
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
