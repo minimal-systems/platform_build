@@ -3273,6 +3273,75 @@ def clang_tidy_cpp_if_needed(
     else:
         run_cpp_compiler()
 
+def transform_c_or_s_to_o_compiler_args(
+    extra_flags="",
+    private_c_includes=None,
+    private_no_default_compiler_flags=False,
+    private_target_global_cflags=None,
+    private_target_global_conlyflags=None,
+    private_arm_cflags=None
+):
+    """
+    Generate compiler arguments for compiling C or assembly files to object files.
+    Args:
+        extra_flags (str): Additional compiler flags.
+        private_c_includes (list): List of include directories.
+        private_no_default_compiler_flags (bool): If True, omit default flags.
+        private_target_global_cflags (str): Global compiler flags for C.
+        private_target_global_conlyflags (str): C-only flags.
+        private_arm_cflags (str): ARM-specific compiler flags.
+    Returns:
+        str: Assembled compiler argument string.
+    """
+    # Collect all includes
+    includes = " ".join([f"-I {path}" for path in private_c_includes or []])
+
+    # Base compiler arguments
+    args = [includes, "-c"]
+
+    # Add optional flags if default flags are not disabled
+    if not private_no_default_compiler_flags:
+        if private_target_global_cflags:
+            args.append(private_target_global_cflags)
+        if private_target_global_conlyflags:
+            args.append(private_target_global_conlyflags)
+        if private_arm_cflags:
+            args.append(private_arm_cflags)
+
+    # Append any extra flags provided
+    args.append(extra_flags)
+
+    # Join and return all arguments as a single string
+    return " ".join(filter(None, args))
+
+def clang_compile_c_or_s(
+    source_file,
+    output_file,
+    private_clang="clang",  # Using clang for compilation
+    **kwargs
+):
+    """
+    Compile a C or assembly source file to an object file using clang.
+    Args:
+        source_file (str): Path to the source file.
+        output_file (str): Path to the output object file.
+        private_clang (str): Clang command to use.
+        **kwargs: Additional arguments for the compiler.
+    """
+    # Ensure the output directory exists
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    # Generate the compiler arguments
+    compiler_args = transform_c_or_s_to_o_compiler_args(**kwargs)
+
+    # Construct the full clang command
+    command = f"{private_clang} {compiler_args} -o {output_file} {source_file}"
+
+    print(f"Running: {command}")
+
+    # Execute the clang command
+    subprocess.run(command, shell=True, check=True)
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
