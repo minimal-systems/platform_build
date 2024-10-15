@@ -2950,6 +2950,66 @@ def transform_y_to_c_or_cpp(yacc_file: str, output_file: str, private_module: st
         print(f"Error during Yacc transformation: {e}")
         raise
 
+def c_includes(
+    private_c_includes=None,
+    private_imported_includes=None,
+    exports=None,
+    private_global_c_includes=None,
+    private_global_c_system_includes=None,
+    private_no_default_compiler_flags=False,
+):
+    """
+    Generate a list of include paths for compiling C/C++ code.
+
+    Args:
+        private_c_includes (list): List of private include paths.
+        private_imported_includes (list): List of imported includes to be resolved from exports.
+        exports (dict): Dictionary of export mappings for imported includes.
+        private_global_c_includes (list): Global include paths.
+        private_global_c_system_includes (list): Global system include paths.
+        private_no_default_compiler_flags (bool): If True, do not add default compiler flags.
+
+    Returns:
+        list: A list of formatted include paths for the compiler.
+    """
+
+    # Ensure inputs are lists if not provided
+    private_c_includes = private_c_includes or []
+    private_imported_includes = private_imported_includes or []
+    exports = exports or {}
+    private_global_c_includes = private_global_c_includes or []
+    private_global_c_system_includes = private_global_c_system_includes or []
+
+    # Resolve imported includes from exports dictionary
+    imported_includes = [
+        exports.get(include, "") for include in private_imported_includes
+    ]
+
+    # Format private includes with '-I ' prefix
+    include_paths = [f"-I {inc}" for inc in private_c_includes]
+
+    # Add imported includes to the paths list
+    include_paths.extend(imported_includes)
+
+    # If no default compiler flags, skip the global includes
+    if not private_no_default_compiler_flags:
+        # Add global includes, excluding any that overlap with private includes
+        filtered_global_includes = [
+            inc for inc in private_global_c_includes if inc not in private_c_includes
+        ]
+        include_paths.extend([f"-I {inc}" for inc in filtered_global_includes])
+
+        # Add global system includes with '-isystem ' prefix
+        filtered_system_includes = [
+            inc
+            for inc in private_global_c_system_includes
+            if inc not in private_c_includes
+        ]
+        include_paths.extend([f"-isystem {inc}" for inc in filtered_system_includes])
+
+    return include_paths
+
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
