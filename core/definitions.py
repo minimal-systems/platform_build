@@ -3664,13 +3664,162 @@ def transform_host_cpp_to_o_c(
             run_clang_tidy()
         compile_cpp_file()
 
+def transform_host_c_or_s_to_o_common_args(
+    private_c_includes=None,
+    private_no_default_compiler_flags=False,
+    private_host_global_cflags="",
+    private_host_global_conlyflags=""
+):
+    """
+    Generate common compiler arguments for host C or assembly files.
+    """
+    includes = " ".join([f"-I {path}" for path in private_c_includes or []])
+    args = [includes, "-c"]
+
+    if not private_no_default_compiler_flags:
+        args.extend([private_host_global_cflags, private_host_global_conlyflags])
+
+    return " ".join(filter(None, args))
+
+def transform_host_c_to_o_compiler_args(
+    private_cflags="",
+    private_conlyflags="",
+    private_debug_cflags="",
+    private_cflags_no_override="",
+    **kwargs
+):
+    """
+    Generate full compiler arguments for host C files.
+    """
+    common_args = transform_host_c_or_s_to_o_common_args(**kwargs)
+    return f"{common_args} {private_cflags} {private_conlyflags} {private_debug_cflags} {private_cflags_no_override}"
+
+def clang_tidy_host_c(source_file, **kwargs):
+    """
+    Run clang-tidy for host C files.
+    """
+    compiler_args = transform_host_c_to_o_compiler_args(**kwargs)
+    command = f"clang-tidy {source_file} -- {compiler_args}"
+    print(f"Running: {command}")
+    subprocess.run(command, shell=True, check=True)
+
+def transform_host_c_to_o(
+    source_file,
+    output_file,
+    with_tidy_only=False,
+    private_prefix="[BUILD]",
+    private_tidy_checks=True,
+    private_module=None,
+    private_cc="clang",
+    **kwargs
+):
+    """
+    Compile host C files with optional clang-tidy checks.
+    """
+    def echo_message(message):
+        """Utility to print formatted messages."""
+        print(message)
+
+    def run_clang_tidy():
+        """Run clang-tidy if enabled."""
+        echo_message(f"tidy {private_prefix} C: {source_file}")
+        clang_tidy_host_c(source_file=source_file, **kwargs)
+
+    def compile_c_file():
+        """Compile the host C file to an object file."""
+        echo_message(f"{private_prefix} C: {private_module} <= {source_file}")
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+        compiler_args = transform_host_c_to_o_compiler_args(**kwargs)
+        command = f"{private_cc} {compiler_args} -MD -MF {output_file.replace('.o', '.d')} -o {output_file} {source_file}"
+        print(f"Running: {command}")
+        subprocess.run(command, shell=True, check=True)
+
+    # Execute based on tidy-only flag
+    if with_tidy_only and private_tidy_checks:
+        run_clang_tidy()
+    else:
+        if private_tidy_checks:
+            run_clang_tidy()
+        compile_c_file()
+
+def transform_host_s_to_o(
+    source_file,
+    output_file,
+    private_prefix="[BUILD]",
+    private_module=None,
+    private_cc="clang",
+    private_asflags="",
+    **kwargs
+):
+    """
+    Compile host assembly (.s) files to object files.
+    """
+    def echo_message(message):
+        """Utility function to print formatted messages."""
+        print(message)
+
+    echo_message(f"{private_prefix} asm: {private_module} <= {source_file}")
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    common_args = transform_host_c_or_s_to_o_common_args(**kwargs)
+    command = f"{private_cc} {common_args} {private_asflags} -MD -MF {output_file.replace('.o', '.d')} -o {output_file} {source_file}"
+    print(f"Running: {command}")
+    subprocess.run(command, shell=True, check=True)
+
+def transform_host_m_to_o(
+    source_file,
+    output_file,
+    private_prefix="[BUILD]",
+    private_module=None,
+    private_cc="clang",  # Using clang for ObjC compilation
+    private_cflags="",
+    private_debug_cflags="",
+    private_cflags_no_override="",
+    **kwargs
+):
+    """
+    Compile a host Objective-C (.m) file into an object file.
+
+    Args:
+        source_file (str): Path to the Objective-C (.m) source file.
+        output_file (str): Path to the output object file.
+        private_prefix (str): Prefix for displayed messages.
+        private_module (str): The name of the module being processed.
+        private_cc (str): Compiler command (e.g., 'clang').
+        private_cflags (str): Flags for the compiler.
+        private_debug_cflags (str): Debugging flags for the compiler.
+        private_cflags_no_override (str): Non-overridable C flags.
+        **kwargs: Additional keyword arguments for compiler argument generation.
+    """
+    def echo_message(message):
+        """Utility function to print formatted messages."""
+        print(message)
+
+    # Print the processing message
+    echo_message(f"{private_prefix} ObjC: {private_module} <= {source_file}")
+
+    # Ensure the output directory exists
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    # Generate the common compiler arguments
+    common_args = transform_host_c_or_s_to_o_common_args(**kwargs)
+
+    # Construct the full compiler arguments
+    extra_flags = f"{private_cflags} {private_debug_cflags} {private_cflags_no_override}"
+    compiler_args = f"{common_args} {extra_flags}"
+
+    # Construct and run the compilation command
+    command = f"{private_cc} {compiler_args} -o {output_file} {source_file}"
+    print(f"Running: {command}")
+    subprocess.run(command, shell=True, check=True)
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
         os.utime(f.fileno() if os.utime in os.supports_fd else fname,
                  dir_fd=None if os.supports_fd else dir_fd,
                  **kwargs)
-
 
 def product_copy_files(src: Union[str, Path], dest: Union[str, Path]) -> None:
     """
