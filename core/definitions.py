@@ -4454,6 +4454,70 @@ def dump_words_to_file(word_list, output_file):
             raise ValueError(f"Too many words ({len(word_list)}) in the list. Maximum is {max_words}.")
         emit_line(word_list[i:i + chunk_size], output_file)
 
+###########################################################
+## Commands for copying files
+###########################################################
+
+def copy_one_header(source, destination):
+    """Copy a header file from source to destination."""
+    if not os.path.exists(destination) or os.path.getmtime(source) > os.path.getmtime(destination):
+        print(f"Header: {destination}")
+        shutil.copyfile(source, destination)
+
+def copy_one_file(source, destination):
+    """Copy a file from source to destination."""
+    if not os.path.exists(destination) or os.path.getmtime(source) > os.path.getmtime(destination):
+        print(f"Copy: {destination}")
+        shutil.copyfile(source, destination)
+
+def copy_one_license_metadata_file(source, destination, built_targets, installed_targets):
+    """Copy a license metadata file from source to destination."""
+    if not os.path.exists(destination) or os.path.getmtime(source) > os.path.getmtime(destination):
+        print(f"Copy: {destination}")
+        copy_license_metadata_file_to_target(built_targets, installed_targets)
+
+def copy_license_metadata_file_to_target(built_targets, installed_targets):
+    """Handles the copying of license metadata files."""
+    # Logic to copy built and installed targets can be added here
+    print(f"Copying license metadata for built targets: {built_targets} and installed targets: {installed_targets}")
+    # shutil.copyfile(built_targets, installed_targets) # Example of handling the copy process
+
+def filter_copy_pair(source, destination, filter_out_target):
+    """Create a copy pair if the destination is not a substring of the filter-out target."""
+    if filter_out_target and destination in filter_out_target:
+        return None  # Do nothing if destination is in the filter-out target
+    return f"{source}:{destination}"
+
+def copy_many_files(copy_pairs, optional_directory=None):
+    """Copy many files based on the list of src:dst pairs.
+
+    Args:
+        copy_pairs (list): A list of `src:dst` strings.
+        optional_directory (str): An optional directory to prepend to the destination.
+
+    Returns:
+        list: List of destination files (suitable for dependency).
+    """
+    destination_files = []
+
+    for pair in copy_pairs:
+        # Split the `src:dst` pair into source and destination
+        source, destination = pair.split(":")
+
+        # Prepend optional directory to destination if provided
+        if optional_directory:
+            destination = os.path.join(optional_directory.rstrip('/'), destination.lstrip('/'))
+
+        # Copy the file if source and destination are not the same
+        if source != destination:
+            print(f"Copy: {source} to {destination}")
+            copy_one_file(source, destination)
+
+        # Collect destination file
+        destination_files.append(destination)
+
+    return destination_files
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
