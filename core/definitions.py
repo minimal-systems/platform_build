@@ -4159,6 +4159,76 @@ def transform_host_o_to_package(output, display, private_module, **kwargs):
     # Reuse the shared library transformation logic for the package
     transform_host_o_to_shared_lib(output, display, private_module, **kwargs)
 
+def transform_o_to_shared_lib_inner(output, private_cxx_link, private_target_crtbegin_so_o,
+                                    private_all_objects, private_all_whole_static_libraries,
+                                    private_group_static_libraries, private_all_static_libraries,
+                                    native_coverage, private_target_coverage_lib, private_target_libcrt_builtins,
+                                    private_target_global_ldflags, private_ldflags, private_all_shared_libraries,
+                                    private_target_crtend_so_o, private_ldlibs):
+    """Transform .o files into a shared library."""
+
+    command = [
+        private_cxx_link,
+        "-nostdlib",
+        f"-Wl,-soname,{os.path.basename(output)}",
+        "-Wl,--gc-sections",
+        "-shared",
+        private_target_crtbegin_so_o,
+        private_all_objects,
+        "-Wl,--whole-archive",
+        private_all_whole_static_libraries,
+        "-Wl,--no-whole-archive",
+    ]
+
+    if private_group_static_libraries:
+        command.extend([
+            "-Wl,--start-group",
+            private_all_static_libraries,
+            "-Wl,--end-group"
+        ])
+    else:
+        command.append(private_all_static_libraries)
+
+    if native_coverage == "true":
+        command.append(private_target_coverage_lib)
+
+    command.extend([
+        private_target_libcrt_builtins,
+        private_target_global_ldflags,
+        private_ldflags,
+        private_all_shared_libraries,
+        "-o", output,
+        private_target_crtend_so_o,
+        private_ldlibs
+    ])
+
+    return " ".join(command)
+
+def transform_o_to_shared_lib(output, display, private_module, private_cxx_link,
+                              private_target_crtbegin_so_o, private_all_objects,
+                              private_all_whole_static_libraries, private_group_static_libraries,
+                              private_all_static_libraries, native_coverage,
+                              private_target_coverage_lib, private_target_libcrt_builtins,
+                              private_target_global_ldflags, private_ldflags,
+                              private_all_shared_libraries, private_target_crtend_so_o, private_ldlibs):
+    """Wrapper to execute the shared library transformation."""
+
+    # Print message and create directory for the output
+    print(f"{display} SharedLib: {private_module} ({output})")
+    os.makedirs(os.path.dirname(output), exist_ok=True)
+
+    # Get the full command from the inner transformation
+    command = transform_o_to_shared_lib_inner(
+        output, private_cxx_link, private_target_crtbegin_so_o, private_all_objects,
+        private_all_whole_static_libraries, private_group_static_libraries, private_all_static_libraries,
+        native_coverage, private_target_coverage_lib, private_target_libcrt_builtins,
+        private_target_global_ldflags, private_ldflags, private_all_shared_libraries,
+        private_target_crtend_so_o, private_ldlibs
+    )
+
+    print(f"Command: {command}")
+    # Normally, you'd execute the command here using subprocess or equivalent if needed.
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
