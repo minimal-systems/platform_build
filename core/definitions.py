@@ -4577,6 +4577,30 @@ def copy_many_init_script_files_checked(init_script_files, target_build_unbundle
         copy_init_script_file_checked(source, destination, target_build_unbundled, host_os, host_init_verifier,
                                       passwd_system_files, property_contexts_files)
 
+def copy_xml_file_checked(source, destination, xmllint_path):
+    """Copy the file only if it's a well-formed XML file.
+
+    Args:
+        source (str): The path to the source XML file.
+        destination (str): The path to the destination file (must end with `.xml`).
+        xmllint_path (str): The path to the `xmllint` or similar XML validation tool.
+    """
+    # Ensure the destination file ends with .xml
+    if not destination.endswith(".xml"):
+        raise ValueError("Destination file must end with .xml")
+
+    # Run xmllint to check if the source XML is well-formed
+    print(f"Validating XML: {source}")
+    try:
+        subprocess.run([xmllint_path, source], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError as e:
+        print(f"XML validation failed for {source}: {e.stderr.decode().strip()}")
+        return  # Exit early if the XML validation fails
+
+    # If validation succeeds, copy the file to the target
+    copy_file_to_target(source, destination)
+    print(f"Copy xml: {destination}")
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
