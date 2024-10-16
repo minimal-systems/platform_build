@@ -4404,6 +4404,33 @@ def transform_host_o_to_executable(output, display, private_prefix, private_modu
     print(f"Command: {command}")
     # Normally, you'd execute the command here using subprocess or equivalent if needed.
 
+def package_coverage_files(output, private_all_objects, soong_zip, out_dir, merge_zips,
+                           private_all_whole_static_libraries):
+    """Package native coverage files."""
+
+    # Remove any existing output and related files
+    if os.path.exists(output):
+        os.remove(output)
+    if os.path.exists(f"{output}.lst"):
+        os.remove(f"{output}.lst")
+    if os.path.exists(f"{output}.premerged"):
+        os.remove(f"{output}.premerged")
+
+    # Create a new .lst file and populate it with object files
+    with open(f"{output}.lst", "w") as lst_file:
+        for obj in private_all_objects:
+            lst_file.write(f"{obj}\n")
+
+    # Run SOONG_ZIP to create the .premerged zip file
+    soong_zip_command = f"{soong_zip} -o {output}.premerged -C {out_dir} -l {output}.lst"
+    print(f"Running SOONG_ZIP command: {soong_zip_command}")
+    # subprocess.run(soong_zip_command, shell=True, check=True)  # Uncomment to run
+
+    # Run MERGE_ZIPS to merge the premerged zip with the static libraries
+    merge_zips_command = f"{merge_zips} -ignore-duplicates {output} {output}.premerged {' '.join(private_all_whole_static_libraries)}"
+    print(f"Running MERGE_ZIPS command: {merge_zips_command}")
+    # subprocess.run(merge_zips_command, shell=True, check=True)  # Uncomment to run
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
