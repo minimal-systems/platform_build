@@ -4518,6 +4518,65 @@ def copy_many_files(copy_pairs, optional_directory=None):
 
     return destination_files
 
+def copy_init_script_file_checked(source, destination, target_build_unbundled, host_os, host_init_verifier,
+                                  passwd_system_files, property_contexts_files):
+    """Copy init script file only if it passes verification."""
+
+    if target_build_unbundled:
+        # In the unbundled case, just copy the file without verification.
+        copy_file_to_target(source, destination)
+    elif host_os != 'darwin':
+        # On non-darwin systems, run the host init verifier.
+        verification_command = [
+            host_init_verifier,
+        ]
+
+        # Add passwd system files
+        for passwd_file in passwd_system_files:
+            verification_command.extend(["-p", passwd_file])
+
+        # Add property contexts files
+        for prop_file in property_contexts_files:
+            verification_command.extend(["--property-contexts", prop_file])
+
+        # Run the verifier on the source file
+        verification_command.append(source)
+
+        # Print and run the command
+        print(f"Running verifier: {' '.join(verification_command)}")
+        subprocess.run(verification_command, check=True)
+
+        # Copy the file after verification
+        copy_file_to_target(source, destination)
+    else:
+        # On darwin, just copy the file.
+        copy_file_to_target(source, destination)
+
+    print(f"Copy init script: {destination}")
+
+def copy_file_to_target(source, destination):
+    """Copy the source file to the destination."""
+    if not os.path.exists(destination) or os.path.getmtime(source) > os.path.getmtime(destination):
+        shutil.copyfile(source, destination)
+
+def copy_many_init_script_files_checked(init_script_files, target_build_unbundled, host_os, host_init_verifier,
+                                        passwd_system_files, property_contexts_files):
+    """Copy many init script files and check they are well-formed.
+
+    Args:
+        init_script_files (list): A list of `src:dst` pairs.
+        target_build_unbundled (bool): Indicates if unbundled build is enabled.
+        host_os (str): The host OS.
+        host_init_verifier (str): The path to the host init verifier.
+        passwd_system_files (list): List of passwd system files.
+        property_contexts_files (list): List of property contexts files.
+    """
+
+    for pair in init_script_files:
+        source, destination = pair.split(":")
+        copy_init_script_file_checked(source, destination, target_build_unbundled, host_os, host_init_verifier,
+                                      passwd_system_files, property_contexts_files)
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
