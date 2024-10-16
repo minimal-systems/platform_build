@@ -4893,6 +4893,111 @@ def run_clean_path_tests():
     else:
         print("All tests passed.")
 
+
+def try_validate_path_is_subdir(path):
+    """
+    Validates if the given path is contained within the current directory.
+    Checks if the path starts with `/` or contains `..`.
+
+    Args:
+        path (str): The file path to validate.
+
+    Returns:
+        str: An error message if validation fails, or an empty string if valid.
+    """
+    cleaned_path = clean_path(path)
+
+    # Check if the path starts with '/'
+    if cleaned_path.startswith("/"):
+        return f"{path} starts with a slash"
+
+    # Check if the path contains '..' that escapes the current directory
+    if ".." in cleaned_path.split(os.sep) and not cleaned_path.startswith(".."):
+        return f"{path} escapes its parent using '..'"
+
+    # Check if the path is empty
+    if not path.strip():
+        return f"'{path}' is empty"
+
+    # If no issues found, return an empty string
+    return ""
+
+
+def validate_path_is_subdir(path):
+    """
+    Validate that the path is a valid subdirectory path.
+
+    Args:
+        path (str): The file path to validate.
+
+    Raises:
+        ValueError: If the path is not valid (contains `/` or `..`).
+    """
+    error_message = try_validate_path_is_subdir(path)
+    if error_message:
+        raise ValueError(f"Illegal path: {error_message}")
+
+
+def try_validate_paths_are_subdirs(path_list):
+    """
+    Validates if all paths in the given list are contained within the current directory.
+
+    Args:
+        path_list (list): A list of paths to validate.
+
+    Returns:
+        str: An error message if any path is invalid, or an empty string if all are valid.
+    """
+    for path in path_list:
+        error_message = try_validate_path_is_subdir(path)
+        if error_message:
+            return error_message
+    return ""
+
+def validate_paths_are_subdirs(path_list):
+    """
+    Validate that all paths in the given list are valid subdirectory paths.
+
+    Args:
+        path_list (list): A list of paths to validate.
+
+    Raises:
+        ValueError: If any path is not valid (contains `/` or `..`).
+    """
+    error_message = try_validate_paths_are_subdirs(path_list)
+    if error_message:
+        raise ValueError(f"Illegal paths: {error_message}")
+
+def run_test_validate_paths_are_subdirs():
+    """
+    Test function that mimics the test function from the Makefile to ensure that
+    path validation is working as expected.
+    """
+    # Test cases for single path validation
+    assert try_validate_path_is_subdir("/tmp") == "/tmp starts with a slash", \
+        f"Incorrect error message for path /tmp: {try_validate_path_is_subdir('/tmp')}"
+
+    assert try_validate_path_is_subdir("../sibling") == "../sibling escapes its parent using '..'", \
+        f"Incorrect error message for path ../sibling: {try_validate_path_is_subdir('../sibling')}"
+
+    assert try_validate_path_is_subdir("child/../../sibling") == "child/../../sibling escapes its parent using '..'", \
+        f"Incorrect error message for path child/../../sibling: {try_validate_path_is_subdir('child/../../sibling')}"
+
+    assert try_validate_path_is_subdir("") == "'' is empty", \
+        f"Incorrect error message for empty path: {try_validate_path_is_subdir('')}"
+
+    assert try_validate_path_is_subdir("subdir/subsubdir") == "", \
+        f"Valid path 'subdir/subsubdir' was rejected: {try_validate_path_is_subdir('subdir/subsubdir')}"
+
+    # Test cases for validating a list of paths
+    assert try_validate_paths_are_subdirs(["a/b", "/c/d", "e/f"]) == "/c/d starts with a slash", \
+        f"Incorrect error message for path list ['a/b', '/c/d', 'e/f']: {try_validate_paths_are_subdirs(['a/b', '/c/d', 'e/f'])}"
+
+    assert try_validate_paths_are_subdirs(["a/b", "c/d"]) == "", \
+        f"Valid path list ['a/b', 'c/d'] was rejected: {try_validate_paths_are_subdirs(['a/b', 'c/d'])}"
+
+    print("All tests passed!")
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
