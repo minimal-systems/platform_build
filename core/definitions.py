@@ -4229,6 +4229,98 @@ def transform_o_to_shared_lib(output, display, private_module, private_cxx_link,
     print(f"Command: {command}")
     # Normally, you'd execute the command here using subprocess or equivalent if needed.
 
+def transform_o_to_static_executable_inner(output, private_cxx_link, private_ldflags,
+                                           private_target_crtbegin_static_o, private_target_global_ldflags,
+                                           private_all_objects, private_all_whole_static_libraries,
+                                           private_all_static_libraries, native_coverage,
+                                           private_target_coverage_lib, private_target_libcrt_builtins,
+                                           private_target_crtend_o):
+    """Transform .o files into a static executable."""
+
+    # Base command using clang++
+    command = [
+        private_cxx_link,
+        "-nostdlib",
+        "-Bstatic"
+    ]
+
+    # If PRIVATE_LDFLAGS does not include -shared, add -static
+    if "-shared" not in private_ldflags:
+        command.append("-static")
+
+    # Continue adding the necessary linker and object files
+    command.extend([
+        "-Wl,--gc-sections",
+        "-o", output,
+        private_target_crtbegin_static_o,
+        private_target_global_ldflags,
+        private_ldflags,
+        private_all_objects,
+        "-Wl,--whole-archive",
+        private_all_whole_static_libraries,
+        "-Wl,--no-whole-archive"
+    ])
+
+    # Filtering out certain libraries
+    filtered_static_libs = [lib for lib in private_all_static_libraries.split()
+                            if lib not in ["libcompiler_rt.hwasan.a", "libc_nomalloc.hwasan.a", "libc.hwasan.a",
+                                           "libcompiler_rt.a", "libc_nomalloc.a", "libc.a"]]
+
+    command.extend(filtered_static_libs)
+
+    # Start group for certain static libraries
+    command.append("-Wl,--start-group")
+
+    # Including only specific libc libraries
+    command.extend([lib for lib in private_all_static_libraries.split()
+                    if lib in ["libc.a", "libc.hwasan.a"]])
+
+    # Adding specific libc_nomalloc libraries
+    command.extend([lib for lib in private_all_static_libraries.split()
+                    if lib in ["libc_nomalloc.a", "libc_nomalloc.hwasan.a"]])
+
+    # Add coverage library if enabled
+    if native_coverage == "true":
+        command.append(private_target_coverage_lib)
+
+    # Add specific compiler runtime libraries
+    command.extend([lib for lib in private_all_static_libraries.split()
+                    if lib in ["libcompiler_rt.a", "libcompiler_rt.hwasan.a"]])
+
+    # Add built-ins and end group
+    command.extend([
+        private_target_libcrt_builtins,
+        "-Wl,--end-group",
+        private_target_crtend_o
+    ])
+
+    return " ".join(command)
+
+def transform_o_to_static_executable(output, display, private_prefix, private_module, private_cxx_link,
+                                     private_ldflags, private_target_crtbegin_static_o,
+                                     private_target_global_ldflags, private_all_objects,
+                                     private_all_whole_static_libraries, private_all_static_libraries,
+                                     native_coverage, private_target_coverage_lib, private_target_libcrt_builtins,
+                                     private_target_crtend_o):
+    """Wrapper to execute the static executable transformation."""
+
+    # Print message
+    print(f"{private_prefix} StaticExecutable: {private_module} ({output})")
+
+    # Create the output directory
+    os.makedirs(os.path.dirname(output), exist_ok=True)
+
+    # Get the full command from the inner transformation
+    command = transform_o_to_static_executable_inner(
+        output, private_cxx_link, private_ldflags, private_target_crtbegin_static_o,
+        private_target_global_ldflags, private_all_objects, private_all_whole_static_libraries,
+        private_all_static_libraries, native_coverage, private_target_coverage_lib,
+        private_target_libcrt_builtins, private_target_crtend_o
+    )
+
+    print(f"Command: {command}")
+    # Normally, you'd execute the command here using subprocess or equivalent if needed.
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
