@@ -4720,6 +4720,39 @@ def symlink_file(source, destination):
     print(f"Creating symlink: {destination} -> {source}")
     os.symlink(source, destination)
 
+def get_file_size(file_path):
+    """Get the size of a file in bytes."""
+    return os.path.getsize(file_path)
+
+def assert_max_image_size(file_list, partition_size):
+    """Assert that the total size of the files in file_list does not exceed the partition size.
+
+    Args:
+        file_list (list): List of file paths to check.
+        partition_size (int): The maximum allowed size for the partition in bytes.
+
+    Raises:
+        ValueError: If the total size exceeds the partition size.
+    """
+    if partition_size is None:
+        return True  # No partition size to check against
+
+    # Calculate the total size of all the files in the list
+    total_size = sum(get_file_size(file) for file in file_list)
+
+    # Print friendly format for file names
+    printname = "+".join(file_list)
+
+    # Assert if the total size exceeds the partition size
+    if total_size > partition_size:
+        raise ValueError(f"error: {printname} too large ({total_size} > {partition_size})")
+    elif total_size > (partition_size - 32768):  # Warn if approaching size limit
+        print(f"WARNING: {printname} approaching size limit ({total_size} now; limit {partition_size})")
+    else:
+        print(f"{printname} is within the size limit ({total_size} <= {partition_size})")
+
+    return True  # Size assertion passed
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
