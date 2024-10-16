@@ -4652,6 +4652,53 @@ def check_elf_prebuilt_product_copy_files(source, destination, llvm_readobj_path
     # Check if the source file is non-ELF and copy it to the destination
     check_non_elf_file(source, destination, llvm_readobj_path, error_message)
 
+def copy_file_to_target_with_cp(source, destination):
+    """Copy a file using `cp -p` (preserving permissions) for OSX compatibility."""
+    os.makedirs(os.path.dirname(destination), exist_ok=True)
+    if os.path.exists(destination):
+        os.remove(destination)
+    print(f"Copying file with `cp -p`: {source} to {destination}")
+    subprocess.run(["cp", "-p", source, destination], check=True)
+
+def copy_file_to_new_target(source, destination):
+    """Copy a file to a new target without preserving old modification times."""
+    os.makedirs(os.path.dirname(destination), exist_ok=True)
+    if os.path.exists(destination):
+        os.remove(destination)
+    print(f"Copying file to new target: {source} to {destination}")
+    shutil.copyfile(source, destination)
+
+def copy_file_or_link_to_new_target(source, destination):
+    """Copy a file or symlink, preserving symlinks."""
+    os.makedirs(os.path.dirname(destination), exist_ok=True)
+    if os.path.exists(destination):
+        os.remove(destination)
+    if os.path.islink(source):
+        link_target = os.readlink(source)
+        absolute_link_target = os.path.abspath(link_target)
+        print(f"Creating symlink: {destination} -> {absolute_link_target}")
+        os.symlink(absolute_link_target, destination)
+    else:
+        print(f"Copying file: {source} to {destination}")
+        shutil.copyfile(source, destination)
+
+def copy_files_with_structure(source_list, strip_path, target_location):
+    """Copy files or directories while preserving sub-directory structure."""
+    for source in source_list:
+        relative_path = source.replace(strip_path, '')
+        destination = os.path.join(target_location, relative_path)
+        os.makedirs(os.path.dirname(destination), exist_ok=True)
+        print(f"Copying {source} to {destination}")
+        shutil.copytree(source, destination, dirs_exist_ok=True)
+
+def symlink_file(source, destination):
+    """Create a symlink for the source file at the destination."""
+    os.makedirs(os.path.dirname(destination), exist_ok=True)
+    if os.path.exists(destination):
+        os.remove(destination)
+    print(f"Creating symlink: {destination} -> {source}")
+    os.symlink(source, destination)
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
