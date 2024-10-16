@@ -4621,6 +4621,37 @@ def copy_many_xml_files_checked(xml_file_pairs, xmllint_path):
 
     return destination_files
 
+def check_non_elf_file(source, destination, llvm_readobj_path, error_message):
+    """Check if the source file is not an ELF file before copying it.
+
+    Args:
+        source (str): Path to the source file.
+        destination (str): Path to the destination file.
+        llvm_readobj_path (str): Path to the `llvm-readobj` tool or a similar ELF checker.
+        error_message (str): Custom message to print if an ELF file is detected.
+
+    Raises:
+        Exception: If the source file is detected as an ELF file.
+    """
+    # Check if the file is an ELF file using llvm-readobj
+    print(f"Check non-ELF: {source}")
+    try:
+        # If the command succeeds, it's an ELF file; we fail the check
+        subprocess.run([llvm_readobj_path, "-h", source], check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        raise Exception(f"{error_message}. Found ELF file: {source}")
+    except subprocess.CalledProcessError:
+        # If llvm-readobj returns an error, it's not an ELF file (expected behavior)
+        pass
+
+    # File is not an ELF, proceed with copying
+    copy_file_to_target(source, destination)
+    print(f"Copy non-ELF: {destination}")
+
+def check_elf_prebuilt_product_copy_files(source, destination, llvm_readobj_path, error_message):
+    """Main function to check and copy non-ELF files."""
+    # Check if the source file is non-ELF and copy it to the destination
+    check_non_elf_file(source, destination, llvm_readobj_path, error_message)
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
