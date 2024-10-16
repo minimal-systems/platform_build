@@ -4321,6 +4321,89 @@ def transform_o_to_static_executable(output, display, private_prefix, private_mo
     print(f"Command: {command}")
     # Normally, you'd execute the command here using subprocess or equivalent if needed.
 
+def transform_host_o_to_executable_inner(output, private_cxx_link, private_crtbegin, private_all_objects,
+                                         private_all_whole_static_libraries, private_group_static_libraries,
+                                         private_all_static_libraries, native_coverage, private_host_libprofile_rt,
+                                         private_libcrt_builtins, private_all_shared_libraries, private_rpaths,
+                                         private_no_default_compiler_flags, private_host_global_ldflags,
+                                         private_ldflags, private_crtend, private_ldlibs):
+    """Transform .o files into a host executable."""
+
+    # Base command
+    command = [
+        private_cxx_link,
+        private_crtbegin,
+        private_all_objects,
+        "-Wl,--whole-archive",
+        private_all_whole_static_libraries,
+        "-Wl,--no-whole-archive"
+    ]
+
+    # Check if PRIVATE_GROUP_STATIC_LIBRARIES is enabled
+    if private_group_static_libraries:
+        command.extend([
+            "-Wl,--start-group",
+            private_all_static_libraries,
+            "-Wl,--end-group"
+        ])
+    else:
+        command.append(private_all_static_libraries)
+
+    # If native coverage is enabled, add the profile runtime library
+    if native_coverage == "true":
+        command.append(private_host_libprofile_rt)
+
+    # Add built-in libraries and shared libraries
+    command.extend([
+        private_libcrt_builtins,
+        private_all_shared_libraries
+    ])
+
+    # Add rpath for each path in PRIVATE_RPATHS
+    for path in private_rpaths:
+        command.append(f"-Wl,-rpath,\\$$ORIGIN/{path}")
+
+    # Add host global LDFLAGS if PRIVATE_NO_DEFAULT_COMPILER_FLAGS is not set
+    if not private_no_default_compiler_flags:
+        command.append(private_host_global_ldflags)
+
+    # Add LDFLAGS, output, CRT end, and additional linker libraries
+    command.extend([
+        private_ldflags,
+        "-o", output,
+        private_crtend,
+        private_ldlibs
+    ])
+
+    return " ".join(command)
+
+def transform_host_o_to_executable(output, display, private_prefix, private_module, private_cxx_link,
+                                   private_crtbegin, private_all_objects, private_all_whole_static_libraries,
+                                   private_group_static_libraries, private_all_static_libraries, native_coverage,
+                                   private_host_libprofile_rt, private_libcrt_builtins,
+                                   private_all_shared_libraries, private_rpaths,
+                                   private_no_default_compiler_flags, private_host_global_ldflags,
+                                   private_ldflags, private_crtend, private_ldlibs):
+    """Wrapper to execute the host executable transformation."""
+
+    # Print message
+    print(f"{private_prefix} Executable: {private_module} ({output})")
+
+    # Create the output directory
+    os.makedirs(os.path.dirname(output), exist_ok=True)
+
+    # Get the full command from the inner transformation
+    command = transform_host_o_to_executable_inner(
+        output, private_cxx_link, private_crtbegin, private_all_objects,
+        private_all_whole_static_libraries, private_group_static_libraries, private_all_static_libraries,
+        native_coverage, private_host_libprofile_rt, private_libcrt_builtins,
+        private_all_shared_libraries, private_rpaths, private_no_default_compiler_flags,
+        private_host_global_ldflags, private_ldflags, private_crtend, private_ldlibs
+    )
+
+    print(f"Command: {command}")
+    # Normally, you'd execute the command here using subprocess or equivalent if needed.
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
