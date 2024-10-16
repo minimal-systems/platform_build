@@ -4753,6 +4753,146 @@ def assert_max_image_size(file_list, partition_size):
 
     return True  # Size assertion passed
 
+def _clean_path_strip_dotdot(expanded_path):
+    """
+    Recursively removes "dir/.." combinations but keeps ".. .." pairs.
+    Args:
+        expanded_path (list): A path split into components.
+    Returns:
+        list: The cleaned path with "dir/.." removed.
+    """
+    if len(expanded_path) < 2:
+        return expanded_path
+
+    if expanded_path[1] == "..":
+        if expanded_path[0] == "..":
+            return [expanded_path[0]] + _clean_path_strip_dotdot(expanded_path[1:])
+        return _clean_path_strip_dotdot(expanded_path[2:])
+    else:
+        return [expanded_path[0]] + _clean_path_strip_dotdot(expanded_path[1:])
+
+def _clean_path_strip_root_dotdots(expanded_path):
+    """
+    Removes any leading ".." from the path (for paths that originally started with /).
+    Args:
+        expanded_path (list): A path split into components.
+    Returns:
+        list: The cleaned path with leading ".." removed.
+    """
+    if len(expanded_path) > 0 and expanded_path[0] == "..":
+        return _clean_path_strip_root_dotdots(expanded_path[1:])
+    return expanded_path
+
+def _clean_path_expanded(rooted, expanded_path):
+    """
+    Repeatedly calls `_clean_path_strip_dotdot` until the path stops changing.
+    Args:
+        rooted (bool): True if the path started with a '/'.
+        expanded_path (list): A path split into components.
+    Returns:
+        list: The fully cleaned path.
+    """
+    cleaned_path = _clean_path_strip_dotdot(expanded_path)
+    if rooted:
+        cleaned_path = _clean_path_strip_root_dotdots(cleaned_path)
+
+    # Keep calling until the path doesn't change anymore
+    if expanded_path == cleaned_path:
+        return cleaned_path
+    return _clean_path_expanded(rooted, cleaned_path)
+
+def clean_path(path):
+    """
+    Cleans the file path -- removes `//`, `dir/..`, extra `.`, and so on.
+    This follows the same semantics as Go's filepath.Clean.
+    Args:
+        path (str): The file path to clean.
+    Returns:
+        str: The cleaned file path.
+    """
+    # Handle empty paths by returning '.'
+    if not path:
+        return "."
+
+    # Check if the path is rooted
+    rooted = path.startswith("/")
+
+    # Split the path into components, replacing `/` with spaces for processing
+    expanded_path = [p for p in path.split("/") if p and p != "."]
+
+    # Clean the path
+    cleaned_components = _clean_path_expanded(rooted, expanded_path)
+
+    # Join the cleaned components back with `/`
+    cleaned_path = "/" + "/".join(cleaned_components) if rooted else "/".join(cleaned_components)
+
+    # Return cleaned path or '.' if it's empty
+    return cleaned_path if cleaned_path else "."
+
+def run_clean_path_tests():
+    """
+    Test function that mimics the `my_test` function from the Makefile to check if the `clean_path` function works as expected.
+    """
+    test_cases = [
+        # Already clean
+        ("abc", "abc"),
+        ("abc/def", "abc/def"),
+        ("a/b/c", "a/b/c"),
+        (".", "."),
+        ("..", ".."),
+        ("../..", "../.."),
+        ("../../abc", "../../abc"),
+        ("/abc", "/abc"),
+        ("/", "/"),
+        # Empty is current dir
+        ("", "."),
+        # Remove trailing slash
+        ("abc/", "abc"),
+        ("abc/def/", "abc/def"),
+        ("a/b/c/", "a/b/c"),
+        ("./", "."),
+        ("../", ".."),
+        ("../../", "../.."),
+        ("/abc/", "/abc"),
+        # Remove doubled slash
+        ("abc//def//ghi", "abc/def/ghi"),
+        ("//abc", "/abc"),
+        ("///abc", "/abc"),
+        ("//abc//", "/abc"),
+        ("abc//", "abc"),
+        # Remove . elements
+        ("abc/./def", "abc/def"),
+        ("/./abc/def", "/abc/def"),
+        ("abc/.", "abc"),
+        # Remove .. elements
+        ("abc/def/ghi/../jkl", "abc/def/jkl"),
+        ("abc/def/../ghi/../jkl", "abc/jkl"),
+        ("abc/def/..", "abc"),
+        ("abc/def/../..", "."),
+        ("/abc/def/../..", "/"),
+        ("abc/def/../../..", ".."),
+        ("/abc/def/../../..", "/"),
+        ("abc/def/../../../ghi/jkl/../../../mno", "../../mno"),
+        ("/../abc", "/abc"),
+        # Combinations
+        ("abc/./../def", "def"),
+        ("abc//./../def", "def"),
+        ("abc/../../././../def", "../../def"),
+    ]
+
+    failed = False
+
+    for input_path, expected_output in test_cases:
+        result = clean_path(input_path)
+        if result != expected_output:
+            print(f"Test failed for '{input_path}': expected '{expected_output}', got '{result}'")
+            failed = True
+
+    if failed:
+        print("Some tests failed.")
+    else:
+        print("All tests passed.")
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
