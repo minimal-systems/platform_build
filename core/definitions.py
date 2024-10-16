@@ -4437,6 +4437,23 @@ def emit_line(word_list, output_file):
         with open(output_file, 'a') as f:
             f.write(f"{' '.join(word_list)} ")
 
+def dump_words_to_file(word_list, output_file):
+    """Dumps words in chunks of 500 into the output file."""
+
+    # Remove the output file if it exists and create a new empty one
+    if os.path.exists(output_file):
+        os.remove(output_file)
+    open(output_file, 'w').close()  # Equivalent to @touch in Makefile
+
+    chunk_size = 500
+    max_words = 99500
+
+    # Split the word list into chunks of 500 words and write them to the output file
+    for i in range(0, len(word_list), chunk_size):
+        if i >= max_words:
+            raise ValueError(f"Too many words ({len(word_list)}) in the list. Maximum is {max_words}.")
+        emit_line(word_list[i:i + chunk_size], output_file)
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
