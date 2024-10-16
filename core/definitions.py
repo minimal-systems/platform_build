@@ -4431,6 +4431,12 @@ def package_coverage_files(output, private_all_objects, soong_zip, out_dir, merg
     print(f"Running MERGE_ZIPS command: {merge_zips_command}")
     # subprocess.run(merge_zips_command, shell=True, check=True)  # Uncomment to run
 
+def emit_line(word_list, output_file):
+    """Appends words from the word_list to the output file."""
+    if word_list:
+        with open(output_file, 'a') as f:
+            f.write(f"{' '.join(word_list)} ")
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
