@@ -4999,36 +4999,58 @@ def run_test_validate_paths_are_subdirs():
 
     print("All tests passed!")
 
-def import_definitions(directory_pattern, build_top):
-    """
-    Dynamically imports the `definitions.py` files from the specified directory pattern.
-    """
-    for root, dirs, files in os.walk(build_top):
-        # Check if the path matches the required pattern
-        if os.path.basename(root) == "core" and "definitions.py" in files:
-            # Dynamically import the definitions.py file
-            module_path = os.path.join(root, "definitions.py")
-            import_module_from_path(module_path)
+build_top = os.environ.get("BUILD_TOP")
 
-def import_module_from_path(module_path):
+def import_definitions_if_exists(build_top):
     """
-    Imports a Python module from the specified file path.
+    Checks for the existence of 'definitions.py' in specified paths and imports them if found.
+
+    Args:
+        build_top (str): The top-level directory from where the definitions are being imported.
     """
-    module_name = os.path.splitext(os.path.basename(module_path))[0]
-    spec = importlib.util.spec_from_file_location(module_name, module_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    print(f"Imported {module_name} from {module_path}")
+    if not build_top:
+        raise ValueError("BUILD_TOP environment variable is not set or empty.")
 
-# Import vendor-specific definitions
-import_definitions("vendor/*/build/core/definitions.py", build_top=None)
-import_definitions("device/*/build/core/definitions.py", build_top=None)
-import_definitions("product/*/build/core/definitions.py", build_top=None)
+    def import_definitions(directory_pattern, build_top):
+        """
+        Dynamically imports the `definitions.py` files from the specified directory pattern.
 
-# Import project-specific definitions
-import_definitions("vendor/*/*/build/core/definitions.py", build_top=None)
-import_definitions("device/*/*/build/core/definitions.py", build_top=None)
-import_definitions("product/*/*/build/core/definitions.py", build_top=None)
+        Args:
+            directory_pattern (str): The pattern to locate `definitions.py` files.
+            build_top (str): The top-level directory to search from.
+        """
+        # Walk through the directory tree starting at build_top
+        for root, dirs, files in os.walk(build_top):
+            # Check if the path matches the required pattern and contains 'definitions.py'
+            if os.path.basename(root) == "core" and "definitions.py" in files:
+                module_path = os.path.join(root, "definitions.py")
+                if os.path.exists(module_path):
+                    import_module_from_path(module_path, build_top)
+
+    def import_module_from_path(module_path, build_top):
+        """
+        Imports a Python module from the specified file path within the context of `build_top`.
+
+        Args:
+            module_path (str): The path to the Python file to import.
+            build_top (str): The top-level directory from where the module is being imported.
+        """
+        # Dynamically import the Python module from the file path
+        module_name = os.path.splitext(os.path.basename(module_path))[0]
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        print(f"Imported {module_name} from {module_path} within {build_top}")
+
+    # Import vendor-specific definitions
+    import_definitions("vendor/*/build/core/definitions.py", build_top)
+    import_definitions("device/*/build/core/definitions.py", build_top)
+    import_definitions("product/*/build/core/definitions.py", build_top)
+
+    # Import project-specific definitions
+    import_definitions("vendor/*/*/build/core/definitions.py", build_top)
+    import_definitions("device/*/*/build/core/definitions.py", build_top)
+    import_definitions("product/*/*/build/core/definitions.py", build_top)
 
 # Allowed characters for module names: a-z A-Z 0-9 _ . + - , @ ~
 VALID_CHARS = re.compile(r'^[a-zA-Z0-9_\.\+\-,@~]+$')
