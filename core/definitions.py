@@ -2,6 +2,7 @@ import fnmatch
 import os
 import platform
 import importlib.util
+import re
 import sys
 from pathlib import Path
 import subprocess
@@ -5028,6 +5029,76 @@ import_definitions("product/*/build/core/definitions.py", build_top=None)
 import_definitions("vendor/*/*/build/core/definitions.py", build_top=None)
 import_definitions("device/*/*/build/core/definitions.py", build_top=None)
 import_definitions("product/*/*/build/core/definitions.py", build_top=None)
+
+# Allowed characters for module names: a-z A-Z 0-9 _ . + - , @ ~
+VALID_CHARS = re.compile(r'^[a-zA-Z0-9_\.\+\-,@~]+$')
+
+def verify_module_name(module_name):
+    """
+    Verifies that the module name only contains valid characters.
+
+    Valid characters are:
+    - a-z, A-Z, 0-9
+    - _, ., +, -, @, ~
+
+    Args:
+        module_name (str): The name of the module to verify.
+
+    Raises:
+        ValueError: If the module name contains invalid characters or slashes.
+        Warning: If the module name contains slashes, suggesting an alternative.
+    """
+    # Check if the module name contains a slash '/'
+    if '/' in module_name:
+        print(f"Warning: Module name contains a '/', use LOCAL_MODULE_STEM and LOCAL_MODULE_RELATIVE_PATH instead")
+
+    # Check for invalid characters
+    invalid_chars = find_invalid_name_chars(module_name)
+    if invalid_chars:
+        raise ValueError(f"Error: Invalid characters in module name: {invalid_chars}")
+
+    print(f"Module name '{module_name}' is valid.")
+
+def find_invalid_name_chars(module_name):
+    """
+    Finds any invalid characters in the module name.
+
+    Args:
+        module_name (str): The module name to check.
+
+    Returns:
+        str: A string of invalid characters, or an empty string if none are found.
+    """
+    # Filter out valid characters using a regular expression
+    if VALID_CHARS.match(module_name):
+        return ""  # All characters are valid
+    # Collect invalid characters
+    return ''.join([char for char in module_name if not re.match(r'[a-zA-Z0-9_\.\+\-,@~]', char)])
+
+def test_verify_module_name():
+    """
+    Tests the `verify_module_name` function with various module names.
+    """
+    test_cases = [
+        ("valid_module_1", ""),  # Valid
+        ("Invalid/Module", "/"),  # Invalid due to '/'
+        ("Invalid=Name", "="),  # Invalid due to '='
+        ("Valid-Name+1", ""),  # Valid
+        ("Another@Valid~Name", ""),  # Valid
+        ("Invalid%Module&", "%&"),  # Invalid due to '%' and '&'
+    ]
+
+    for module_name, expected_invalid in test_cases:
+        try:
+            verify_module_name(module_name)
+            if expected_invalid:
+                print(f"Test failed for '{module_name}': expected invalid characters '{expected_invalid}'")
+        except ValueError as e:
+            print(e)
+            if expected_invalid not in str(e):
+                print(f"Test failed for '{module_name}': expected invalid characters '{expected_invalid}', but got {e}")
+        except Warning as w:
+            print(w)
 
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
