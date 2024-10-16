@@ -4691,6 +4691,27 @@ def copy_files_with_structure(source_list, strip_path, target_location):
         print(f"Copying {source} to {destination}")
         shutil.copytree(source, destination, dirs_exist_ok=True)
 
+def run_symbols_map_tool(file_type, symbols_path, mapping_path, symbols_map_tool):
+    """Run the symbols mapping tool to extract hash mapping for the given file type."""
+    command = [symbols_map_tool, f"-{file_type}", symbols_path, "-write_if_changed", mapping_path]
+    print(f"Running symbols map tool: {' '.join(command)}")
+    subprocess.run(command, check=True)
+
+def copy_symbols_file_with_mapping(unstripped_file, symbols_path, file_type, mapping_path, symbols_map_tool):
+    """Copy the unstripped file to the symbols directory and extract the hash mapping."""
+    print(f"Copy symbols with mapping: {symbols_path}")
+
+    # Copy the unstripped file to the symbols directory
+    copy_file_to_target(unstripped_file, symbols_path)
+
+    # Run the mapping tool to extract the hash and write it to the mapping path
+    run_symbols_map_tool(file_type, symbols_path, mapping_path, symbols_map_tool)
+
+def copy_unstripped_elf_file_with_mapping(unstripped_file, symbols_path, symbols_map_tool, target_out_unstripped, packaging_dir):
+    """Copy an unstripped ELF file to the symbols directory with mapping."""
+    mapping_path = os.path.join(packaging_dir, "elf_symbol_mapping", symbols_path.replace(target_out_unstripped + "/", "") + ".textproto")
+    copy_symbols_file_with_mapping(unstripped_file, symbols_path, "elf", mapping_path, symbols_map_tool)
+
 def symlink_file(source, destination):
     """Create a symlink for the source file at the destination."""
     os.makedirs(os.path.dirname(destination), exist_ok=True)
