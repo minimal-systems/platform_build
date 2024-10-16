@@ -4601,6 +4601,26 @@ def copy_xml_file_checked(source, destination, xmllint_path):
     copy_file_to_target(source, destination)
     print(f"Copy xml: {destination}")
 
+def copy_many_xml_files_checked(xml_file_pairs, xmllint_path):
+    """Copy many XML files after checking if they are well-formed.
+
+    Args:
+        xml_file_pairs (list): A list of `src:dst` pairs where the source file is copied to the destination.
+        xmllint_path (str): The path to the `xmllint` or XML validation tool.
+
+    Returns:
+        list: A list of the destination files that were successfully copied.
+    """
+    destination_files = []
+
+    for pair in xml_file_pairs:
+        source, destination = pair.split(":")
+        # Check and copy the XML file
+        if copy_xml_file_checked(source, destination, xmllint_path):
+            destination_files.append(destination)
+
+    return destination_files
+
 def touch(fname, mode=0o666, dir_fd=None, **kwargs):
     flags = os.O_CREAT | os.O_APPEND
     with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
