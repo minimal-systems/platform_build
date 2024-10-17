@@ -49,10 +49,8 @@ def write_json():
         json.dump(device_info, write_file, indent=4, sort_keys=True)
 
 def dump_info():
-    table = PrettyTable()
-    table.field_names = ['Variable', 'Value']
-    table.align = 'l'
-    table.add_rows([
+    # Data to be printed with '=' between variable and value
+    data = [
         ['PLATFORM_VERSION_CODENAME', platform_version_codename],
         ['PLATFORM_VERSION', platform_version],
         ['TARGET_PRODUCT', target_device],
@@ -66,9 +64,17 @@ def dump_info():
         ['HOST_OS_EXTRA', host_os_extra],
         ['BUILD_ID', build_id],
         ['OUT_DIR', out_dir],
-    ])
+    ]
 
-    print(table)
+    # Print separator
+    separator = "=" * 45
+    print(separator)
 
+    # Print each line in 'KEY = VALUE' format
+    for key, value in data:
+        print(f"{key} = {value}")
+
+    # Print separator again at the bottom
+    print(separator)
 if __name__ == '__main__':
     main()
