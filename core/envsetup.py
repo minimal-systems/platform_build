@@ -18,7 +18,8 @@ if os.name == 'nt':
     host_os_extra = 'windows'
     host_arch = 'x86_64'
 else:
-    host_os_extra = os.uname().release
+    uname_info = os.uname()
+    host_os_extra = f"{uname_info.sysname} {uname_info.release} {uname_info.machine}"
 
 target_build_variant = os.environ.get("TARGET_BUILD_VARIANT")
 build_top = os.environ.get("BUILD_TOP", "")
