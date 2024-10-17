@@ -1,11 +1,8 @@
 #!/usr/bin/python3
 import json
-import os
-import sys
-import platform
+
 from build_logger import *
 from definitions import *
-from prettytable import PrettyTable
 
 # Ensure BUILD_TOP and TARGET_DEVICE are set
 BUILD_TOP = os.environ.get("BUILD_TOP")
