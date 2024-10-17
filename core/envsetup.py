@@ -5,7 +5,7 @@ import platform
 import sys
 from pathlib import Path
 from build_id import *
-from config import *
+from build_config import *
 from ccache import *
 from definitions import *
 # disable creation of __pycache__
