@@ -33,6 +33,52 @@ check_dependencies
 chmod +x ./prebuilts/python/venv/bin/activate
 source prebuilts/python/venv/bin/activate
 
+# Parse board_config.py for architecture details
+parse_board_config() {
+    # Extract the relevant architecture variables from board_config.py using Python
+    ARCH_VARS=$(python3 <<END
+import os
+
+board_config_path = os.path.join('$BUILD_TOP', "device", "$TARGET_DEVICE", 'board_config.py')
+
+# Define the variables we're interested in
+target_vars = {
+    'target_cpu_abi': None,
+    'target_arch': None,
+    'target_arch_variant': None,
+    'target_cpu_variant': None,
+    'target_2nd_cpu_abi': None,
+    'target_2nd_arch': None,
+    'target_2nd_arch_variant': None,
+    'target_board_platform': None,
+    'target_product': None,
+    'target_kernel_arch': None,
+    'target_kernel': None,
+    'target_defconfig': None,
+}
+
+# Execute board_config.py in a restricted namespace to extract the variables
+namespace = {}
+with open(board_config_path, 'r') as f:
+    exec(f.read(), namespace)
+
+# Extract the relevant values from the namespace
+for key in target_vars.keys():
+    target_vars[key] = namespace.get(key, "N/A")
+
+# Print the results as environment variables
+for key, value in target_vars.items():
+    print(f'export {key.upper()}={value}')
+
+END
+)
+
+    # Source the architecture variables into the current environment
+    eval "$ARCH_VARS"
+}
+
+
+
 # Function: croot
 # Usage: croot
 # Changes directory to the top of the build tree.
@@ -82,6 +128,8 @@ function lunch() {
     # Source build environment and invoke lunch target script
     source "$BUILD_TOP/build/soong/scripts/build-environment.sh"
     python3 "$BUILD_TOP/build/make/core/lunch_target.py" "$TARGET_DEVICE-$TARGET_BUILD_VARIANT"
+    # Run the architecture parser
+  parse_board_config
 }
 
 # Function: build

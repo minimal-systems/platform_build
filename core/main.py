@@ -9,6 +9,7 @@ from envsetup import *
 from lunch_target import *
 from soong_ui import *
 from build_logger import *
+from clang_config import *
 
 
 # global variables
