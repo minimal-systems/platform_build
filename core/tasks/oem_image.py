@@ -1,12 +1,13 @@
 import os
 import subprocess
 from envsetup import target_product_out, out_dir, target_device
-from definitions import declare_1p_container
+from definitions import declare_1p_container, intermediates_dir_for
 from device_info import *
 
 # Paths from environment or defaults
 target_out_oem = os.path.join(str(target_product_out), "oem")
-oemimage_intermediates = os.path.join(out_dir, "intermediates", "PACKAGING", "oem")
+# Ensure the correct output path includes `out/target/product/generic/obj/PACKAGING/oem_image_intermediates`
+oemimage_intermediates = intermediates_dir_for("PACKAGING", "oem_image", target_product_out=str(target_product_out))
 installed_oemimage_target = os.path.join(str(target_product_out), "oem.img")
 board_oemimage_partition_size = target_board_oem_size
 
@@ -138,7 +139,12 @@ def build_oem_image():
         os.remove(oem_image_info_path)
 
     # Generate the image property dictionary
-    generate_image_prop_dictionary(oem_image_info_path, "oem", skip_fsck=True)
+    generate_image_prop_dictionary(
+        oem_image_info_path,
+        "oem",
+        skip_fsck="true",
+        oem_partition_size=f"{board_oemimage_partition_size}"
+    )
 
     # Add paths to internal binaries if required
     internal_userimages_binary_paths = os.getenv('INTERNAL_USERIMAGES_BINARY_PATHS', '')
