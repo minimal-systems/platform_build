@@ -11,8 +11,8 @@ from definitions import *
 # disable creation of __pycache__
 sys.dont_write_bytecode = True
 
+host_os = platform.system().lower()
 host_arch = platform.machine()
-host_os = platform.system()
 if os.name == 'nt':
     host_os = 'windows'
     host_os_extra = 'windows'
@@ -20,6 +20,21 @@ if os.name == 'nt':
 else:
     uname_info = os.uname()
     host_os_extra = f"{uname_info.sysname} {uname_info.release} {uname_info.machine}"
+
+# Map platform.system() values to Android build host names
+if host_os == "linux":
+    host_os = "linux-x86"
+elif host_os == "darwin":
+    host_os = "darwin-x86"
+elif host_os == "windows":
+    host_os = "windows-x86"
+
+# Ensure architecture compatibility with AOSP build system expectations
+if host_arch == "x86_64":
+    host_arch = "x86_64"
+else:
+    # Default to x86_64 for unknown architectures
+    host_arch = "x86_64"
 
 target_build_variant = os.environ.get("TARGET_BUILD_VARIANT")
 build_top = os.environ.get("BUILD_TOP", "")
@@ -56,7 +71,8 @@ target_static_libs_obj = target_obj / "STATIC_LIBRARIES"
 target_kernel_out = target_obj / "KERNEL_OBJ"
 target_etc_obj = target_obj / "ETC"
 product_out = target_product_out
-
+soong_out_dir = out_dir / "soong"
+host_out_executables = os.path.join(out_dir, "host", f"{host_os}-{host_arch}", "bin")
 # compiler variables
 clang = "clang"
 clangxx = "clang++"
