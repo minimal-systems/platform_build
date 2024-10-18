@@ -2339,7 +2339,7 @@ def intermediates_dir_for(target_class, target_name, target_type=None,
                           force_common=False, second_arch=False, host_cross_os=False,
                           target_product_out=None):
     """
-    Calculate the intermediate directory for a given target.
+    Calculate the intermediate directory for a given target, including support for target device from environment variables.
 
     Args:
         target_class (str): Class of the target (e.g., "APPS").
@@ -2360,8 +2360,11 @@ def intermediates_dir_for(target_class, target_name, target_type=None,
     if not target_name:
         raise ValueError("Name not defined in call to intermediates_dir_for.")
 
-    # Use the provided product output directory or default to the current working directory
-    base_out_dir = target_product_out or os.getcwd()
+    # Retrieve the target device from the environment or set a default
+    target_device = os.environ.get('TARGET_DEVICE', 'generic')
+
+    # Use the provided product output directory or construct one using the target device
+    base_out_dir = target_product_out or os.path.join(os.getcwd(), "target", "product", target_device)
 
     # Calculate the prefix based on target type and host cross OS
     prefix = find_idf_prefix(target_type, host_cross_os)
