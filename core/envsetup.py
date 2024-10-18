@@ -31,8 +31,13 @@ target_product_out = out_dir / "target" / "product" / target_device
 target_obj = target_product_out / "obj"
 target_system_out = target_product_out / "rootfs"
 target_vendor_out = target_product_out / "rootfs" / "usr"
+target_container_out = target_product_out / "containers"
+target_copy_out_system = target_system_out
+target_copy_out_vendor = target_vendor_out
+target_copy_out_containers = target_container_out
 target_root_out = target_product_out / "root"
 target_recovery_out = target_product_out / "recovery" / "root"
+target_copy_out_recovery = target_recovery_out
 target_kernel_out = target_product_out / "obj" / "KERNEL_OBJ"
 target_vendor_out_etc = target_vendor_out / "etc"
 target_system_out_etc = target_system_out / "etc"
@@ -45,12 +50,12 @@ target_system_out_lib = target_system_out / "lib"
 target_system_out_lib64 = target_system_out / "lib64"
 target_vendor_out_lib64 = target_vendor_out / "lib64"
 target_recovery_out_usr_bin = target_recovery_out / "usr" / "bin"
-target_container_out = target_product_out / "containers"
 target_shared_libs_obj = target_obj / "SHARED_LIBRARIES"
 target_executables_obj = target_obj / "EXECUTABLES"
 target_static_libs_obj = target_obj / "STATIC_LIBRARIES"
 target_kernel_out = target_obj / "KERNEL_OBJ"
 target_etc_obj = target_obj / "ETC"
+product_out = target_product_out
 
 # compiler variables
 clang = "clang"
