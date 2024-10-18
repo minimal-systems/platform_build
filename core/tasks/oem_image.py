@@ -110,6 +110,17 @@ def build_image(target_out_oem, oem_image_info_path, installed_oemimage_target, 
 
     print(f"OEM image built successfully: {installed_oemimage_target}")
 
+    # Shrink the image using resize2fs to minimize size
+    print(f"Shrinking the OEM image to the minimum size")
+    resize_command = ["resize2fs", "-M", installed_oemimage_target]
+    resize_result = subprocess.run(resize_command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    if resize_result.returncode != 0:
+        stderr_message = resize_result.stderr.decode() if resize_result.stderr else "No error message"
+        raise RuntimeError(f"Failed to shrink the image: {stderr_message}")
+
+    print(f"OEM image shrunk successfully.")
+
 
 def dist_for_goals(goal, target):
     """
