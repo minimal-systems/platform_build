@@ -84,3 +84,57 @@
 # -------------------------------------------------------
 # 16.1. Ensure that all functions and syntax are compatible with Python 3.x.
 # 16.2. Use `f-strings`, `pathlib`, and other Python 3 features for cleaner code.
+TODO: Parse command-line arguments to simulate Makefile target selection, like 'build', 'clean', 'install'.
+      - Use argparse to handle these tasks.
+      - Ensure proper error messages for invalid tasks.
+
+TODO: Define the key paths and variables used in the Makefile.
+      - Set up equivalent variables for directories such as build, source, and binary output directories.
+      - Define the compiler, compiler flags, and linker flags.
+      - Identify source files using Python's Pathlib (e.g., *.cpp or *.c files).
+
+TODO: Implement the `compile_sources()` function to handle compiling source files.
+      - Check if the build directory exists, and create it if not.
+      - For each source file, create the corresponding object file.
+      - Use subprocess to call the compiler with the proper flags.
+
+TODO: Implement the `link_objects()` function to handle linking object files into executables.
+      - Collect all object files from the build directory.
+      - Run the linker command using subprocess, with any necessary linker flags.
+      - Place the resulting binary in the bin directory.
+
+TODO: Handle file dependency checks to only recompile when necessary.
+      - Check if the object file is older than its corresponding source file.
+      - Only recompile if the source file has changed since the last build.
+      - Use Python's os.stat or pathlib methods for file timestamps.
+
+TODO: Convert Makefile conditionals (ifeq, ifneq) to Python conditionals.
+      - Translate conditional logic that handles different build configurations or environments.
+      - Implement these conditions using Python `if` statements.
+
+TODO: Implement the `clean()` function to remove built files.
+      - Delete all object files, binary files, and other generated outputs.
+      - Ensure that cleaning is non-destructive to source files.
+
+TODO: Translate implicit rules like %.o: %.cpp into Python functions.
+      - Create functions that match specific file patterns (e.g., .cpp to .o) and handle the conversion.
+
+TODO: Implement support for parallel builds.
+      - If the original Makefile supported parallel builds (e.g., make -j), use Python's multiprocessing module.
+      - Implement parallel compilation of files when requested via command-line arguments.
+
+TODO: Add logging for build steps.
+      - Replace the default stdout from the Makefile with your custom logging system (logger-daemon).
+      - Log messages should include details of the commands being run and their results.
+
+TODO: Implement error handling for subprocess calls.
+      - Ensure that the build process halts on failed compilation or linking steps.
+      - Print detailed error messages if subprocess commands fail.
+
+TODO: Test the `build()` function, which acts as the main entry point for running the full compilation and linking process.
+      - Ensure that all defined tasks (compile, link, clean) function correctly.
+      - Compare the output with what the Makefile originally produced.
+
+TODO: Validate the final output.
+      - Ensure the final executable or binaries match those produced by the Makefile.
+      - Verify that all targets, flags, and rules are correctly translated into Python.
