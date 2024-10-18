@@ -118,22 +118,28 @@ product_packages += [
     "liblog",
 ]
 
-def call_all_gnome_core():
-    global product_packages
-    product_packages += [
-        "com.gnome.gnome-core",
-        "com.gnome.gnome-core-apps",
-        "com.gnome.gnome-core-settings",
-        "com.gnome.gnome-core-extensions",
-        "com.gnome.gnome-core-themes",
-        "com.gnome.gnome-core-icons",
-        "com.gnome.gnome-core-shell",
-        "com.gnome.gnome-core-session",
-        "com.gnome.gnome-core-utilities",
-        "com.gnome.gnome-core-games",
-    ]
+# Display Stack: GNOME Shell, Wayland, and XWayland
 
-call_all_gnome_core()
+# GNOME Shell and Core Compositor
+product_packages += [
+    "gnome-shell",           # GNOME Shell for the desktop environment
+    "mutter",                # Mutter as the Wayland compositor and XWayland window manager
+    "gnome-session",         # GNOME session manager
+]
+
+# Wayland and XWayland Support
+product_packages += [
+    "wayland",               # Wayland display server protocol
+    "xwayland",              # XWayland to run X11 applications on Wayland
+]
+
+# Rendering and Input Handling
+product_packages += [
+    "mesa",                  # Mesa 3D Graphics Library for OpenGL and hardware acceleration
+    "libdrm",                # Direct Rendering Manager for GPU management
+    "libinput",              # Input handling library for touchpads, mice, and keyboards
+    "libegl",                # EGL for OpenGL and OpenGL ES
+]
 
 def call_all_gnome_config_overrides():
     global product_packages
