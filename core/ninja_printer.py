@@ -56,12 +56,15 @@ class NinjaStyleTqdm:
             action (str): The action being performed (e.g., "compile").
             target_file (str): The file or target being processed.
         """
-        # Calculate the percentage of tasks completed
-        percent_complete = (self.current_task / self.total_tasks) * 100
+        if self.total_tasks == 0:
+            # Avoid division by zero if total_tasks is 0
+            percent_complete = 100  # You could set this to 100 if no tasks are left to be done
+        else:
+            percent_complete = (self.current_task / self.total_tasks) * 100
 
         # Estimate time remaining
         elapsed_time = self.tqdm_instance.format_dict['elapsed']
-        if self.current_task > 0:
+        if self.current_task > 0 and self.total_tasks > 0:
             estimated_total_time = (elapsed_time / self.current_task) * self.total_tasks
             remaining_time = estimated_total_time - elapsed_time
             time_remaining_str = self._format_time(remaining_time)
@@ -81,7 +84,6 @@ class NinjaStyleTqdm:
         # Increment the task index and update the tqdm progress bar
         self.tqdm_instance.update(1)
         self.current_task += 1
-
     def finish(self):
         """
         Completes the tqdm progress bar and prints a final newline to ensure the last line is not overwritten.
