@@ -120,6 +120,7 @@ function lunch() {
     export PYTHONPATH=$PYTHONPATH:$BUILD_TOP/build/make/core
     export PYTHONPATH=$PYTHONPATH:$BUILD_TOP/build/make/tools
     export PYTHONPATH=$PYTHONPATH:$BUILD_TOP/build/make/common
+    export PYTHONPATH=$PYTHONPATH:$BUILD_TOP/build/make/core/clang
     export PYTHONPATH=$PYTHONPATH:$BUILD_TOP/build/make/core/combo
     export PYTHONPATH=$PYTHONPATH:$BUILD_TOP/build/make/core/tasks
     export PYTHONPATH=$PYTHONPATH:$BUILD_TOP/build/soong
