@@ -85,6 +85,13 @@ folder_structures = {
         ('wifi', None, False),  # WLAN configuration moved to OEM
         ('carrier', None, False),  # Carrier specific configuration moved to OEM
         ('touch', None, False)  # Touch firmware specific configuration moved to OEM
+    ],
+    'boot': [
+        ('efi/EFI/BOOT', None, False),
+        ('efi/EFI/minimal_systems', None, False),
+        ('grub2/fonts', None, False),
+        ('grub2', None, False),
+        ('loader/entries', None, False),
     ]
 }
 
@@ -222,6 +229,11 @@ extra_folders_combined = {
         "wifi",
         "carrier",
         "touch"
+    ],
+    'boot': [
+        "EFI",
+        "grub",
+        "memtests"
     ]
 }
 
@@ -234,7 +246,6 @@ def create_structure(base_path, structure, extra_folders):
         path = os.path.join(base_path, name)
         if is_symlink:
             if not os.path.exists(path):
-                # Ensure the parent directory of the symlink exists before creating the symlink
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 os.symlink(link_target, path)
                 pr_info(f"Created symlink {path} -> {link_target}", log_tag)
@@ -255,18 +266,18 @@ def clean_structure(base_path):
 
 def setup_directory(base_path, structure_key):
     clean_structure(base_path)
-    os.makedirs(base_path, exist_ok=True)
     create_structure(base_path, folder_structures[structure_key], extra_folders_combined.get(structure_key, []))
     pr_info(f"{structure_key.capitalize()} folder structure created at {base_path}", log_tag)
 
 def main():
-    # Setup root, rootfs, recovery, and oem directories
+    # Setup root, rootfs, recovery, oem, and boot directories
     setup_directory(target_root_out, 'root')
     setup_directory(target_system_out, 'rootfs')
     setup_directory(os.path.join(target_system_out, 'usr'), 'rootfs_usr')
     setup_directory(target_recovery_out, 'recovery')
     setup_directory(target_oem_out, 'oem')
-    # Ensure rootfs/usr, recovery, and oem are set up properly with their subdirectories
+    setup_directory(target_boot_out, 'boot')
+    # Ensure rootfs/usr, recovery, oem, and boot are set up properly with their subdirectories
 
 if __name__ == "__main__":
     main()
