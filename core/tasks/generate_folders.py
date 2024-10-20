@@ -60,6 +60,31 @@ folder_structures = {
         ('sbin', 'bin', True),  # Symlink sbin to bin
         ('share', None, False),
         ('src', None, False)
+    ],
+    'recovery': [
+        ('bin', 'usr/bin', True),
+        ('containers', None, False),
+        ('etc', None, False),
+        ('lib', 'usr/lib', True),
+        ('lib64', 'usr/lib', True),
+        ('sbin', 'usr/bin', True),
+        ('usr', None, False),  # Setup the usr directory inside recovery
+        ('var', 'run', True)  # var is now a symlink to run
+    ],
+    'oem': [
+        ('bin', None, False),
+        ('etc', None, False),
+        ('lib', None, False),
+        ('lib64', None, False),
+        ('sbin', None, False),
+        ('var', None, False),
+        ('modules', None, False),  # OEM-specific modules
+        ('firmware', None, False),  # Firmware images
+        ('keys', None, False),  # Keys for OEM purposes
+        ('manufacturer', None, False),  # Manufacturer information
+        ('wifi', None, False),  # WLAN configuration moved to OEM
+        ('carrier', None, False),  # Carrier specific configuration moved to OEM
+        ('touch', None, False)  # Touch firmware specific configuration moved to OEM
     ]
 }
 
@@ -150,7 +175,7 @@ extra_folders = {
         "containers/tmp",            # Temporary files for containers
         "containers/hooks",          # Hooks for custom behavior (e.g., pre-start, post-stop)
         "containers/snapshots",      # Snapshots of container states
-        "containers/runtime",        # Contains runtime-specific directories (cgroups, etc.)
+        "containers/runtime"         # Contains runtime-specific directories (cgroups, etc.)
     ],
     # Kernel modules directory dynamically based on the kernel version
     'kernel_modules': [
@@ -159,20 +184,25 @@ extra_folders = {
 }
 
 # Merge extra folders for specific structures
-rootfs_extra = (rootfs_extra_folders +
-                extra_folders['wlan'] +
-                extra_folders['carrier'] +
-                extra_folders['firmware'] +
-                extra_folders['touch_firmware'] +
-                extra_folders['linux_etc'] +
-                extra_folders['run'] +
-                extra_folders['var'] +
-                extra_folders['kernel_modules'])
+rootfs_extra = (
+    rootfs_extra_folders +
+    extra_folders['firmware'] +
+    extra_folders['linux_etc'] +
+    extra_folders['run'] +
+    extra_folders['var'] +
+    extra_folders['kernel_modules']
+)
+
+oem_extra = (
+    rootfs_extra_folders +
+    extra_folders['firmware'] +
+    extra_folders['kernel_modules']
+)
 
 # Combine the extra folders into the dictionary
 extra_folders_combined = {
     'root': [],
-    'recovery': [],
+    'recovery': rootfs_extra,
     'rootfs': rootfs_extra,
     'rootfs_usr': [
         "bin",
@@ -183,15 +213,23 @@ extra_folders_combined = {
         "share",
         "src"
     ],  # Extra folders for usr structure
-    'containers': extra_folders['containers']
+    'containers': extra_folders['containers'],
+    'oem': oem_extra + [
+        "modules",
+        "firmware",
+        "keys",
+        "manufacturer",
+        "wifi",
+        "carrier",
+        "touch"
+    ]
 }
-
 
 def create_structure(base_path, structure, extra_folders):
     # Ensure the base_path itself exists
     os.makedirs(base_path, exist_ok=True)
 
-    # First, create the main directory structure
+    # Create main directory structure
     for name, link_target, is_symlink in structure:
         path = os.path.join(base_path, name)
         if is_symlink:
@@ -200,6 +238,9 @@ def create_structure(base_path, structure, extra_folders):
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 os.symlink(link_target, path)
                 pr_info(f"Created symlink {path} -> {link_target}", log_tag)
+        else:
+            os.makedirs(path, exist_ok=True)
+            pr_info(f"Created folder {path}", log_tag)
 
     # Now, create the extra folders ensuring parent directories exist
     for folder in extra_folders:
@@ -207,13 +248,10 @@ def create_structure(base_path, structure, extra_folders):
         os.makedirs(full_path, exist_ok=True)
         pr_info(f"Created extra folder {full_path}", log_tag)
 
-
-
 def clean_structure(base_path):
     if os.path.exists(base_path):
         shutil.rmtree(base_path)
         pr_debug(f"Cleaned up existing structure at {base_path}", log_tag)
-
 
 def setup_directory(base_path, structure_key):
     clean_structure(base_path)
@@ -221,15 +259,14 @@ def setup_directory(base_path, structure_key):
     create_structure(base_path, folder_structures[structure_key], extra_folders_combined.get(structure_key, []))
     pr_info(f"{structure_key.capitalize()} folder structure created at {base_path}", log_tag)
 
-
 def main():
-    # Setup root and rootfs directories
+    # Setup root, rootfs, recovery, and oem directories
     setup_directory(target_root_out, 'root')
     setup_directory(target_system_out, 'rootfs')
     setup_directory(os.path.join(target_system_out, 'usr'), 'rootfs_usr')
-    # Ensure rootfs/usr is set up properly with its subdirectories
-
-
+    setup_directory(target_recovery_out, 'recovery')
+    setup_directory(target_oem_out, 'oem')
+    # Ensure rootfs/usr, recovery, and oem are set up properly with their subdirectories
 
 if __name__ == "__main__":
     main()
