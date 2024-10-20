@@ -230,11 +230,6 @@ extra_folders_combined = {
         "carrier",
         "touch"
     ],
-    'boot': [
-        "EFI",
-        "grub",
-        "memtests"
-    ]
 }
 
 def create_structure(base_path, structure, extra_folders):
