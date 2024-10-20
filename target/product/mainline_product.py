@@ -141,6 +141,36 @@ product_packages += [
     "libegl",                # EGL for OpenGL and OpenGL ES
 ]
 
+# Keymaster Stack: Secure key handling and cryptographic operations for Linux
+
+# Core Cryptographic Libraries and Services
+product_packages += [
+    "openssl",               # OpenSSL library for cryptographic operations (encryption, signing)
+    "gnutls",                # GnuTLS for secure communications and key handling
+    "libgcrypt",             # GNU cryptographic library (commonly used in secure systems)
+    "tpm2-tools",            # Tools for working with TPM 2.0 hardware for secure key storage
+    "tpm2-abrmd",            # TPM Access Broker & Resource Manager daemon for managing TPM hardware
+]
+
+# Secure Boot and Trusted Platform Support
+product_packages += [
+    "fwupd",                 # Firmware update daemon with TPM support for secure updates
+    "tpm2-tss",              # TPM Software Stack (TSS) to interact with TPM 2.0 hardware
+    "cryptsetup",            # Utility to set up encrypted disks (e.g., LUKS) for secure storage
+]
+
+# Hardware Security Modules (HSM) and TrustZone Support (Optional)
+product_packages += [
+    "softhsm",               # Software-based HSM for cryptographic operations in environments without hardware HSM
+    "libtss2-tcti",          # TCTI (TPM Command Transmission Interface) for interfacing with hardware-based TPM
+]
+
+# Secure Storage and Key Management (Optional)
+product_packages += [
+    "keyutils",              # Utilities for managing keys within the kernel's key management facility
+    "libkcapi",              # Linux kernel cryptographic API for interfacing with the kernel’s cryptography system
+]
+
 def call_all_gnome_config_overrides():
     global product_packages
     package_name = "com.gnome.gnome-config-overrides"
