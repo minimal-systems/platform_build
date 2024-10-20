@@ -48,7 +48,8 @@ folder_structures = {
         ('lib64', 'usr/lib', True),
         ('sbin', 'usr/bin', True),
         ('usr', None, False),  # Setup the usr directory inside rootfs
-        ('var', 'run', True)  # var is now a symlink to run
+        ('var', 'run', True),  # var is now a symlink to run
+        ('firmware',None, False) #symlink to oem firmware)
     ],
     'rootfs_usr': [
         ('bin', None, False),
@@ -193,7 +194,6 @@ extra_folders = {
 # Merge extra folders for specific structures
 rootfs_extra = (
     rootfs_extra_folders +
-    extra_folders['firmware'] +
     extra_folders['linux_etc'] +
     extra_folders['run'] +
     extra_folders['var'] +
