@@ -92,8 +92,26 @@ folder_structures = {
         ('efi/EFI/minimal_systems', None, False),
         ('grub2/fonts', None, False),
         ('grub2', None, False),
-        ('loader/entries', None, False),
-    ]
+        ('loader/entries',  None, False),
+    ],
+    'containers_data': [
+        ('data', None, False),           # Contains the actual data or container layers
+        ('overlay', None, False),        # Overlay filesystem directory for upper and lower layers
+        ('overlay/lower', None, False),  # Lower directory for read-only layers
+        ('overlay/upper', None, False),  # Upper directory for read-write layers
+        ('overlay/work', None, False),   # Work directory used by overlayfs
+        ('overlay/merged', None, False), # Merged view of the upper and lower layers
+        ('config', None, False),         # Configuration files for containers
+        ('logs', None, False),           # Logs directory
+        ('runtimes', None, False),       # Runtimes for containers (e.g., runc)
+        ('network', None, False),        # Networking configurations for containers
+        ('volumes', None, False),        # Volumes for persistent storage
+        ('secrets', None, False),        # Secrets mounted inside containers
+        ('tmp', None, False),            # Temporary files for containers
+        ('hooks', None, False),          # Hooks for custom behavior (e.g., pre-start, post-stop)
+        ('snapshots', None, False),      # Snapshots of container states
+        ('runtime', None, False)         # Contains runtime-specific directories (cgroups, etc.)
+    ],
 }
 
 # Extra categorized folders including kernel module directory
@@ -168,22 +186,6 @@ extra_folders = {
     ],
     'containers': [
         "containers",
-        "containers/data",           # Contains the actual data or container layers
-        "containers/overlay",        # Overlay filesystem directory for upper and lower layers
-        "containers/overlay/lower",  # Lower directory for read-only layers
-        "containers/overlay/upper",  # Upper directory for read-write layers
-        "containers/overlay/work",   # Work directory used by overlayfs
-        "containers/overlay/merged", # Merged view of the upper and lower layers
-        "containers/config",         # Configuration files for containers
-        "containers/logs",           # Logs directory
-        "containers/runtimes",       # Runtimes for containers (e.g., runc)
-        "containers/network",        # Networking configurations for containers
-        "containers/volumes",        # Volumes for persistent storage
-        "containers/secrets",        # Secrets mounted inside containers
-        "containers/tmp",            # Temporary files for containers
-        "containers/hooks",          # Hooks for custom behavior (e.g., pre-start, post-stop)
-        "containers/snapshots",      # Snapshots of container states
-        "containers/runtime"         # Contains runtime-specific directories (cgroups, etc.)
     ],
     # Kernel modules directory dynamically based on the kernel version
     'kernel_modules': [
@@ -272,6 +274,7 @@ def main():
     setup_directory(target_recovery_out, 'recovery')
     setup_directory(target_oem_out, 'oem')
     setup_directory(target_boot_out, 'boot')
+    setup_directory(target_container_data_out, 'containers_data')
     # Ensure rootfs/usr, recovery, oem, and boot are set up properly with their subdirectories
 
 if __name__ == "__main__":
