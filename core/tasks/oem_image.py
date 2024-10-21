@@ -9,7 +9,9 @@ from device_info import *
 target_out_oem = os.path.join(str(target_product_out), "oem")
 oemimage_intermediates = intermediates_dir_for("PACKAGING", "oem_image", target_product_out=str(target_product_out))
 installed_oemimage_target = os.path.join(str(target_product_out), "oem.img")
-board_oemimage_partition_size = target_board_oem_size
+
+# Set OEM partition size directly
+board_oemimage_partition_size = 536870912
 
 # Error handling for missing OEM partition size
 if not board_oemimage_partition_size:
@@ -40,7 +42,7 @@ def assert_max_image_size(image_path, max_size):
     """
     ninja_log.display_task("Checking", "image size")
     image_size = os.path.getsize(image_path)
-    max_size_bytes = int(max_size.rstrip('MB')) * 1024 * 1024
+    max_size_bytes = int(max_size)
 
     if image_size > max_size_bytes:
         raise ValueError(f"Image size {image_size} exceeds maximum size {max_size_bytes}.")
@@ -53,7 +55,7 @@ def build_image(target_out_oem, oem_image_info_path, installed_oemimage_target, 
     """
     ninja_log.display_task("Building", "OEM image")
 
-    partition_size_mb = min(int(board_oemimage_partition_size.rstrip('MB')), 512)
+    partition_size_mb = min(board_oemimage_partition_size // (1024 * 1024), 512)
     partition_size_bytes = partition_size_mb * 1024 * 1024
 
     # Create the image file using dd
