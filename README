@@ -1,0 +1,39 @@
+# Linux Python-Based Build System
+
+This Python-based build system has been adapted from the Makefile-based portion of the Android Build System, replacing traditional `Makefile` and `Android.mk` files with Python scripts. We leverage `module_info.bp` from our Python Soong library to manage module configurations and dependencies dynamically.
+
+## Overview
+
+The transition to a Python-based build system allows for greater flexibility and modernization of the build process. Instead of using static Makefiles, the build logic is now handled by Python, with the `module_info.bp` system streamlining module management and dependency resolution.
+
+The Python Soong library parses the `module_info.bp` files and generates build actions, making the process efficient and suited to modern Linux development environments.
+
+## Key Features
+
+- **Makefile Replacement**: The build process no longer uses `Makefile` or `Android.mk`. Instead, we rely on Python scripts and `module_info.bp` files managed by our custom Python Soong library.
+- **Dynamic Dependency Management**: The `module_info.bp` system enables dynamic resolution and management of build dependencies, optimizing the build graph automatically.
+- **Ninja File Generation**: Python scripts generate ninja files for efficient builds, ensuring compatibility with other build systems when required.
+- **Linux-Focused**: This build system is optimized for Linux environments but remains flexible enough for adaptation to other platforms.
+
+## Usage
+
+1. **Running a Build**:
+    To start a build, simply run the main Python script:
+
+    ```bash
+    python3 build.py
+    ```
+
+    The script will use the `module_info.bp` files via the Python Soong library to determine the modules, dependencies, and build actions required for the project.
+
+    - TODO: Implement the logic for parsing and handling the `module_info.bp` files in the main build script.
+
+2. **Configuration**:
+    Configuration and module definitions are handled through the `module_info.bp` files, which replace the old `Android.mk` system. Ensure the necessary modules are defined and properly structured within these files for the build process.
+
+3. **Build Output**:
+    The build process generates a ninja file that coordinates compilation and linking. All output artifacts will be placed in the designated directories as defined in the configuration.
+
+## Transition to Python Build System
+
+This Python-based build system fully replaces the traditional Makefile-based approach. The `module_info.bp` system, managed by the Python Soong library, drives the entire build process, ensuring smooth and automated module handling and dependency resolution.
