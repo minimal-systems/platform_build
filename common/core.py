@@ -4,7 +4,9 @@
 # core.py - Core variables and functions for the build system.
 
 import os
+import sys
 from collections import namedtuple
+import inspect
 
 # Create a named tuple to hold the read-only variables.
 ReadOnlyVars = namedtuple('ReadOnlyVars', [
@@ -55,3 +57,32 @@ top = TOP  # Backward compatibility with lowercase variable.
 # Empty directory placeholder, equivalent to TOPDIR :=$= in Makefile.
 TOPDIR = readonly_vars.TOPDIR
 topdir = TOPDIR  # Backward compatibility with lowercase variable.
+
+# Basic warning/error/info wrappers. These are designed to include the local
+# module information (filename and line number) for use within Python-based
+# build files, helping to track issues with relevant context.
+
+def pretty_message(msg, level="error"):
+    """
+    Outputs messages in a Makefile-style format with dynamic line number and filename.
+    
+    Args:
+        msg (str): The message to be displayed.
+        level (str): The type of message, either 'error', 'warning', or 'info'. Defaults to 'error'.
+    """
+    # Get the caller's frame, filename, and line number
+    frame = inspect.currentframe().f_back
+    filename = os.path.basename(frame.f_code.co_filename)
+    lineno = frame.f_lineno
+
+    # Print the message in the format: filename:lineno: level: msg
+    print(f"{filename}:{lineno}: {level}: {msg}", file=sys.stderr)
+
+    # Exit if it's an error
+    if level == "error":
+        sys.exit(1)
+
+# Example usage:
+# pretty_message("This is an info message", level="info")
+# pretty_message("This is a warning", level="warning")
+# pretty_message("This is an error", level="error")
