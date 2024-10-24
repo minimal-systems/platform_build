@@ -36,6 +36,8 @@ backslash = '\\'
 
 # Current directory, equivalent to defining TOP :=$= . in Makefile.
 TOP = '.'
+top = TOP  # Lowercase variable for backward compatibility.
 
 # Empty directory placeholder, equivalent to TOPDIR :=$= in Makefile.
 TOPDIR = ''
+topdir = TOPDIR  # Lowercase variable for backward compatibility.
