@@ -7,7 +7,7 @@ import re
 import os
 import sys
 import inspect
-from core_build import pretty_message
+from common.core_build import pretty_message
 
 ###########################################################
 ## Convert to lower case without requiring a shell.
@@ -137,7 +137,3 @@ def uniq_pairs_by_first_component(lst, sep=":"):
             first_seen.add(first_part)
             result.append(w)
     return " ".join(result)
-
-# Example usage for uniq_pairs_by_first_component
-test_list = "a:b a:c b:d c:e a:f"
-print(uniq_pairs_by_first_component(test_list, ":"))  # Outputs: "a:b b:d c:e"
