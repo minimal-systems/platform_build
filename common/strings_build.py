@@ -7,7 +7,7 @@ import re
 import os
 import sys
 import inspect
-from common.core_build import pretty_message
+from build.make.common.core_build import pretty_message
 
 ###########################################################
 ## Convert to lower case without requiring a shell.
